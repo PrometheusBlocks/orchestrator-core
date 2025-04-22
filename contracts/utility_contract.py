@@ -8,7 +8,7 @@ MAX_UTILITY_TOKENS = 200_000
 
 class Dependency(BaseModel):
     package: str
-    version: str = Field(..., regex=r"^[^\s]+$")
+    version: str = Field(..., pattern=r"^[^\s]+$")
 
 
 class EntryPoint(BaseModel):
