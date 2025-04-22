@@ -1,5 +1,5 @@
-
 from contracts.utility_contract import UtilityContract, EntryPoint, Dependency
+
 
 def test_round_trip():
     spec = UtilityContract(
@@ -12,10 +12,10 @@ def test_round_trip():
                 name="hello",
                 description="say hi",
                 parameters_schema={},
-                return_schema={}
+                return_schema={},
             )
         ],
         deps=[Dependency(package="requests", version=">=2")],
-        tests=["tests/test_demo.py"]
+        tests=["tests/test_demo.py"],
     )
     assert spec.dict()["name"] == "demo"

@@ -1,19 +1,22 @@
-
 """Utility Contract — shared schema for all PrometheusBlocks utilities."""
+
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
 MAX_UTILITY_TOKENS = 200_000
 
+
 class Dependency(BaseModel):
     package: str
     version: str = Field(..., regex=r"^[^\s]+$")
+
 
 class EntryPoint(BaseModel):
     name: str
     description: str
     parameters_schema: dict
     return_schema: dict
+
 
 class UtilityContract(BaseModel):
     name: str
