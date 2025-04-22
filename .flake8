@@ -1,6 +1,6 @@
 
 # Ignore rules that are cosmetic for humans
 [flake8]
-extend-ignore = E401,E501       # E401 multiple imports; E501 long lines
-max-line-length = 120           # Matches Black’s default-ish wrapping
+extend-ignore = E401,E501      
+max-line-length = 120           
 exclude = .git,__pycache__,.venv
