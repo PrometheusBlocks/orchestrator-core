@@ -5,7 +5,9 @@ Usage:
     pb-registry fetch utility_name > spec.json
 """
 
-import argparse, json, os, sys
+import argparse
+import json
+import sys
 from pathlib import Path
 
 REGISTRY_DIR = Path.home() / ".pb_registry"

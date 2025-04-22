@@ -1,7 +1,7 @@
 """Utility Contract — shared schema for all PrometheusBlocks utilities."""
 
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 
 MAX_UTILITY_TOKENS = 200_000
 
