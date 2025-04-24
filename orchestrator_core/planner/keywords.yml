@@ -1,0 +1,4 @@
+# keyword : capability mapping
+document upload: [document_upload]
+bank statement:  [statement_parser]
+retirement:      [financial_engine]
