@@ -1,4 +1,8 @@
 # keyword : capability mapping
-document upload: [document_upload]
-bank statement:  [statement_parser]
-retirement:      [financial_engine]
+file upload: [document_upload]
+ocr: [document_upload]
+database: [db_api]
+rest api: [api_service]
+dashboard: [dashboard_ui]
+email: [notification_service]
+chat: [llm_chat]

@@ -1,0 +1,5 @@
+# finance domain-specific keyword to capability mapping
+bank statement: [statement_parser]
+transaction: [statement_parser]
+retirement: [financial_engine]
+portfolio: [portfolio_analyzer]
