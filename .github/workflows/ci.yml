@@ -14,3 +14,5 @@ jobs:
       - run: black --check .
       - run: flake8 .
       - run: pytest -q
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

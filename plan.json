@@ -1,0 +1,10 @@
+{
+  "prompt": "upload pdf bank statement and see retirement simulation",
+  "resolved": [
+    "document_upload"
+  ],
+  "missing": [
+    "statement_parser",
+    "financial_engine"
+  ]
+}
