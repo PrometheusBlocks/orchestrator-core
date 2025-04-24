@@ -17,3 +17,42 @@ python -m orchestrator_core.cli list
 
 # view the full JSON spec for a specific utility
 python -m orchestrator_core.cli show data-models
+```
+
+## Planner (new)
+
+Generate execution plans from natural language prompts:
+
+```bash
+# via CLI
+python -m orchestrator_core.cli plan "upload pdf statements"
+# or if installed as pb-orchestrator:
+pb-orchestrator plan "upload pdf statements"
+```
+
+This prints resolved and missing capabilities and writes `plan.json` to the current directory.
+
+## API (new)
+
+Run the API server:
+
+```bash
+uvicorn orchestrator_core.api.main:app --reload
+```
+
+Then POST to `/plan`:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/plan" -H "Content-Type: application/json" \
+     -d '{"prompt": "upload pdf statements"}'
+```
+
+Response:
+
+```json
+{
+  "prompt": "upload pdf statements",
+  "resolved": ["document_upload", ...],
+  "missing": ["statement_parser", ...]
+}
+```
