@@ -30,4 +30,5 @@ class UtilityContract(BaseModel):
 
     class Config:
         title = "PrometheusBlocks Utility Contract"
-        anystr_strip_whitespace = True
+        # Pydantic v2: strip whitespace from strings
+        str_strip_whitespace = True

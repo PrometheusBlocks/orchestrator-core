@@ -19,6 +19,30 @@ python -m orchestrator_core.cli list
 python -m orchestrator_core.cli show data-models
 ```
 
+## GitHub Integration (new)
+
+The catalog now also discovers utility specs directly from public GitHub repositories under the `PrometheusBlocks` organization. Any file named `utility_contract.json` in any path of those repos will be fetched, validated, and merged into the local registry view.
+
+Prerequisites:
+  * (Optional) Set a GitHub personal access token for higher rate limits:
+      export GITHUB_TOKEN=<your_token>
+  * Ensure your Python trusts GitHub’s TLS certificates. On macOS, run the
+    `Install Certificates.command` that comes with the Python installer,
+    or install the `certifi` package (`pip install certifi`).
+
+Usage:
+```bash
+# List all utilities, including those fetched from GitHub
+python -m orchestrator_core.cli list
+
+# If you prefer to inspect directly via Python:
+python3 - <<'EOF'
+from orchestrator_core.catalog.github_client import fetch_github_specs
+specs = fetch_github_specs()
+import pprint; pprint.pprint(specs)
+EOF
+```
+
 ## Planner (new)
 
 Generate execution plans from natural language prompts:

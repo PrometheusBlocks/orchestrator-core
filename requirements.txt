@@ -3,3 +3,4 @@ pyyaml
 fastapi
 uvicorn[standard]
 openai>=1.13
+certifi>=2023.05.30

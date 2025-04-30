@@ -36,4 +36,30 @@ def load_specs() -> Dict[str, dict]:
             if current_version is not None and version <= current_version:
                 continue
         specs[name] = data
+    # Attempt to fetch additional specs from GitHub and merge, keeping highest versions
+    try:
+        from .github_client import fetch_github_specs
+
+        remote_specs = fetch_github_specs()
+        for name, spec in remote_specs.items():
+            # Ensure spec has a version
+            ver_str = spec.get("version")
+            if not ver_str:
+                continue
+            try:
+                remote_ver = Version(ver_str)
+            except InvalidVersion:
+                continue
+            # Compare with local spec
+            if name in specs:
+                try:
+                    local_ver = Version(specs[name].get("version", ""))
+                except InvalidVersion:
+                    local_ver = None
+                if local_ver is not None and remote_ver <= local_ver:
+                    continue
+            specs[name] = spec
+    except Exception:
+        # If GitHub integration fails, proceed with local specs only
+        pass
     return specs
