@@ -1,6 +1,7 @@
 """
 GitHub client for fetching utility specs from the PrometheusBlocks organization.
 """
+
 import os
 import json
 import base64
@@ -22,7 +23,9 @@ logger = logging.getLogger(__name__)
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 
 
-def fetch_github_specs(org: str = "PrometheusBlocks", token: Optional[str] = None) -> Dict[str, dict]:
+def fetch_github_specs(
+    org: str = "PrometheusBlocks", token: Optional[str] = None
+) -> Dict[str, dict]:
     """
     Discover and return utility specs from public GitHub repos in the given org.
     Looks for files named 'utility_contract.json' in any path; falls back to checking each repo root.
@@ -46,7 +49,9 @@ def fetch_github_specs(org: str = "PrometheusBlocks", token: Optional[str] = Non
 
     # 1) Try GitHub Search API to find any utility_contract.json files
     query = f"filename:utility_contract.json org:{org}"
-    search_url = f"https://api.github.com/search/code?q={urllib.parse.quote(query)}&per_page=100"
+    search_url = (
+        f"https://api.github.com/search/code?q={urllib.parse.quote(query)}&per_page=100"
+    )
     try:
         search_data, _ = _get_json(search_url)
         items = search_data.get("items", []) if isinstance(search_data, dict) else []
@@ -84,7 +89,9 @@ def fetch_github_specs(org: str = "PrometheusBlocks", token: Optional[str] = Non
                 curr_ver = None
             if curr_ver is not None and ver <= curr_ver:
                 continue
-        specs[spec.name] = spec.model_dump() if hasattr(spec, 'model_dump') else spec.dict()
+        specs[spec.name] = (
+            spec.model_dump() if hasattr(spec, "model_dump") else spec.dict()
+        )
 
     # 2) Fallback: attempt to fetch utility_contract.json from each repo root
     if not specs:
@@ -135,6 +142,8 @@ def fetch_github_specs(org: str = "PrometheusBlocks", token: Optional[str] = Non
                     curr_ver = None
                 if curr_ver is not None and ver <= curr_ver:
                     continue
-            specs[spec.name] = spec.model_dump() if hasattr(spec, 'model_dump') else spec.dict()
+            specs[spec.name] = (
+                spec.model_dump() if hasattr(spec, "model_dump") else spec.dict()
+            )
 
     return specs
