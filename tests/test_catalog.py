@@ -1,7 +1,7 @@
 import json
 
 # Import the module containing the function to be tested and potentially mocked
-from orchestrator_core.catalog import index, github_client
+from orchestrator_core.catalog import index
 from pathlib import Path
 
 
