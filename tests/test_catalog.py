@@ -1,8 +1,11 @@
 import json
-
-# Import the module containing the function to be tested and potentially mocked
-from orchestrator_core.catalog import index
 from pathlib import Path
+
+# Import the module containing the function to be tested
+from orchestrator_core.catalog import index
+
+# We don't need to import github_client directly,
+# but we need its full path for monkeypatching
 
 
 def test_load_specs(tmp_path, monkeypatch):
@@ -22,10 +25,10 @@ def test_load_specs(tmp_path, monkeypatch):
             "description": "baz invalid",
         },  # Should be skipped
         {
-            "name": "qux-1.0.0",
+            "name": "qux",  # Corrected name to match expected key
             "version": "1.0.0",
             "description": "qux v1",
-        },  # Test filename parsing
+        },  # Test filename parsing (filename will be qux-1.0.0.json)
         {
             "name": "corge",
             "version": "1.0",
@@ -40,6 +43,7 @@ def test_load_specs(tmp_path, monkeypatch):
 
     for spec in specs_data:
         # Use the name and version from the spec dict for the filename
+        # For qux, this will now create qux-1.0.0.json
         file_path = registry_dir / f"{spec['name']}-{spec['version']}.json"
         # Only write files for specs that have valid version strings in this test setup
         # (or specifically test invalid versions)
@@ -49,9 +53,12 @@ def test_load_specs(tmp_path, monkeypatch):
     # Override HOME to use the fake home directory
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    # Mock the GitHub fetch function to prevent network calls and interference
-    # Ensure it returns an empty dict so only local specs are considered
-    monkeypatch.setattr(index, "fetch_github_specs", lambda: {})
+    # Mock the GitHub fetch function where it's defined/imported from
+    # The 'load_specs' function imports 'fetch_github_specs' from '.github_client',
+    # so we need to patch it in the 'github_client' module.
+    monkeypatch.setattr(
+        "orchestrator_core.catalog.github_client.fetch_github_specs", lambda: {}
+    )
 
     result = index.load_specs()
 
@@ -66,7 +73,7 @@ def test_load_specs(tmp_path, monkeypatch):
     assert "bar" in result
     assert result["bar"]["version"] == "0.5.0"
     assert "qux" in result  # Check if qux-1.0.0.json was parsed correctly
-    assert result["qux"]["version"] == "1.0.0"
+    assert result["qux"]["version"] == "1.0.0"  # Check the version loaded for qux
     assert "baz" not in result  # Should be skipped due to invalid version in filename
     assert "invalid_json" not in result  # Should be skipped due to JSONDecodeError
     assert (
