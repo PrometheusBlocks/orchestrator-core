@@ -32,9 +32,9 @@ def test_fetch_github_specs_via_search(monkeypatch):
                 "name": "run",
                 "description": "Run foo",
                 "parameters_schema": {},
-                "return_schema": {}
+                "return_schema": {},
             }
-        ]
+        ],
     }
     # Base64-encoded content for the utility_contract.json
     encoded_content = base64.b64encode(json.dumps(spec).encode()).decode()
@@ -42,7 +42,16 @@ def test_fetch_github_specs_via_search(monkeypatch):
     def fake_get(url, headers=None):
         # Simulate search API response
         if url.startswith("https://api.github.com/search/code"):
-            return DummyResponse({"items": [{"url": "https://api.github.com/repos/org/repo/contents/utility_contract.json"}]}, {})
+            return DummyResponse(
+                {
+                    "items": [
+                        {
+                            "url": "https://api.github.com/repos/org/repo/contents/utility_contract.json"
+                        }
+                    ]
+                },
+                {},
+            )
         # Simulate fetching the file content
         if url.endswith("utility_contract.json"):
             return DummyResponse({"encoding": "base64", "content": encoded_content}, {})
@@ -69,9 +78,9 @@ def test_fetch_github_specs_fallback_on_search_error(monkeypatch):
                 "name": "execute",
                 "description": "Execute bar",
                 "parameters_schema": {},
-                "return_schema": {}
+                "return_schema": {},
             }
-        ]
+        ],
     }
     encoded_content = base64.b64encode(json.dumps(spec).encode()).decode()
 
@@ -94,9 +103,11 @@ def test_fetch_github_specs_fallback_on_search_error(monkeypatch):
     assert "bar" in specs
     assert specs["bar"]["version"] == "2.0.0"
 
+
 def test_fetch_github_specs_skips_large_size_budget(monkeypatch):
     # Prepare a spec exceeding MAX_UTILITY_TOKENS
     from contracts.utility_contract import MAX_UTILITY_TOKENS
+
     spec = {
         "name": "big",
         "version": "1.0.0",
@@ -104,14 +115,28 @@ def test_fetch_github_specs_skips_large_size_budget(monkeypatch):
         "description": "Big utility",
         "size_budget": MAX_UTILITY_TOKENS + 1,
         "entrypoints": [
-            {"name": "run", "description": "Run big", "parameters_schema": {}, "return_schema": {}}
-        ]
+            {
+                "name": "run",
+                "description": "Run big",
+                "parameters_schema": {},
+                "return_schema": {},
+            }
+        ],
     }
     encoded_content = base64.b64encode(json.dumps(spec).encode()).decode()
 
     def fake_get(url, headers=None):
         if url.startswith("https://api.github.com/search/code"):
-            return DummyResponse({"items": [{"url": "https://api.github.com/repos/org/repo/contents/utility_contract.json"}]}, {})
+            return DummyResponse(
+                {
+                    "items": [
+                        {
+                            "url": "https://api.github.com/repos/org/repo/contents/utility_contract.json"
+                        }
+                    ]
+                },
+                {},
+            )
         if url.endswith("utility_contract.json"):
             return DummyResponse({"encoding": "base64", "content": encoded_content}, {})
         pytest.skip(f"Unexpected URL called: {url}")
