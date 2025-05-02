@@ -5,12 +5,9 @@ GitHub client for fetching utility specs from the PrometheusBlocks organization.
 import os
 import json
 import base64
-import ssl
-import certifi
-import urllib.request
-import urllib.error
 import urllib.parse
 import logging
+import requests
 from typing import Dict, Optional
 
 from packaging.version import Version, InvalidVersion
@@ -18,9 +15,8 @@ from contracts.utility_contract import UtilityContract, MAX_UTILITY_TOKENS
 
 # Module logger; application should configure handlers/levels as desired
 logger = logging.getLogger(__name__)
-
-# Use certifi's CA bundle for SSL verification
-ssl_context = ssl.create_default_context(cafile=certifi.where())
+# HTTP session for GitHub API requests
+session = requests.Session()
 
 
 def fetch_github_specs(
@@ -39,11 +35,11 @@ def fetch_github_specs(
         headers["Authorization"] = f"token {token}"
 
     def _get_json(url: str):  # -> (data, headers)
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, context=ssl_context) as resp:
-            raw = resp.read().decode(resp.headers.get_content_charset() or "utf-8")
-            data = json.loads(raw)
-            return data, resp.headers
+        # Perform GET request and return parsed JSON and response headers
+        resp = session.get(url, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
+        return data, resp.headers
 
     specs: Dict[str, dict] = {}
 

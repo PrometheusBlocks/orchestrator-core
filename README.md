@@ -1,5 +1,12 @@
 # PrometheusBlocks — Orchestrator Core
 
+## Day 1 Completed (2025-05-02)
+
+- Migrated GitHub client to use the `requests` library.
+- Added unit tests for the GitHub client (tests/test_github_client.py).
+- Updated `requirements.txt` with `requests` and `packaging`.
+- Verified CLI list/show commands and all tests pass.
+
 This repository provides the *contract definition* and a minimal *registry CLI* for PrometheusBlocks utilities.
 
 * **contracts/utility_contract.py** — Pydantic data model that every utility must import.
