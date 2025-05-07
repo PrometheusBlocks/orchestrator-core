@@ -1,3 +1,6 @@
+"""Legacy fallback planner: keyword-based plan maker.
+Superseded by LLM-based planning via parser.prompt_to_plan."""
+
 import json
 import datetime
 import yaml

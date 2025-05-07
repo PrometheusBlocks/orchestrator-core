@@ -32,7 +32,10 @@ def main(argv=None) -> None:
     show = sub.add_parser("show")
     show.add_argument("name")
     # plan command to create execution plan from prompt
-    plan_p = sub.add_parser("plan")
+    plan_p = sub.add_parser(
+        "plan",
+        help="Generate execution plan from a natural language prompt (LLM-based) and write plan.json to the current directory",
+    )
     plan_p.add_argument("prompt", nargs="+", help="Prompt text for planning")
     args = parser.parse_args(argv)
     if args.cmd == "list":
@@ -51,8 +54,8 @@ def main(argv=None) -> None:
         try:
             with open("plan.json", "w") as f:
                 json.dump(plan_steps, f, indent=2)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: failed to write plan.json: {e}", file=sys.stderr)
     else:
         parser.print_help()
 

@@ -85,9 +85,7 @@ def fetch_github_specs(
                 curr_ver = None
             if curr_ver is not None and ver <= curr_ver:
                 continue
-        specs[spec.name] = (
-            spec.model_dump() if hasattr(spec, "model_dump") else spec.dict()
-        )
+        specs[spec.name] = spec.model_dump()
 
     # 2) Fallback: attempt to fetch utility_contract.json from each repo root
     if not specs:
@@ -138,8 +136,6 @@ def fetch_github_specs(
                     curr_ver = None
                 if curr_ver is not None and ver <= curr_ver:
                     continue
-            specs[spec.name] = (
-                spec.model_dump() if hasattr(spec, "model_dump") else spec.dict()
-            )
+            specs[spec.name] = spec.model_dump()
 
     return specs

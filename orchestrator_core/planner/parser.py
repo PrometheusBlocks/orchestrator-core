@@ -2,6 +2,21 @@ import os
 import json
 from pathlib import Path
 import yaml
+from pydantic import BaseModel, ValidationError
+from typing import List
+
+
+# Pydantic model for a single execution plan step
+class PlanStep(BaseModel):
+    """Pydantic model for a single execution plan step."""
+
+    step_id: int
+    action: str
+    inputs: dict
+    description: str
+
+
+# Legacy Plan class removed; using PlanStep for per-item validation
 
 # flake8: noqa: W293  # allow blank-line whitespace inside this file (e.g., in system_prompt docstring)
 
@@ -185,23 +200,24 @@ def prompt_to_plan(prompt: str) -> list[dict]:
         # If response is a dict (rich JSON), return it directly
         if isinstance(plan_data, dict):
             return plan_data
-        # Otherwise, expect a list of step dicts
+        # Otherwise, expect a list of step dicts; validate with Pydantic
         if not isinstance(plan_data, list):
             raise ValueError("Plan is not a list or dict")
-        validated: list[dict] = []
-        expected_id = 1
-        for item in plan_data:
-            if (
-                not isinstance(item, dict)
-                or item.get("step_id") != expected_id
-                or not isinstance(item.get("action"), str)
-                or not isinstance(item.get("inputs"), dict)
-                or not isinstance(item.get("description"), str)
-            ):
-                raise ValueError(f"Invalid plan item: {item}")
-            validated.append(item)
-            expected_id += 1
-        return validated
+        # Validate each step with Pydantic
+        validated_steps = []
+        for idx, item in enumerate(plan_data, start=1):
+            try:
+                step = PlanStep.model_validate(item)
+            except ValidationError as ve:
+                raise ValueError(f"Plan step validation error (step {idx}): {ve}")
+            if step.step_id != idx:
+                raise ValueError(f"Expected step_id {idx}, got {step.step_id}")
+            validated_steps.append(step)
+        # Return validated plan as list of dicts
+        return [
+            step.model_dump() if hasattr(step, "model_dump") else step.dict()
+            for step in validated_steps
+        ]
     # Capture the exception as 'e'
     except Exception as e:
         # Print the exception before falling back

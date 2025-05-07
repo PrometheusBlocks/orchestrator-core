@@ -61,7 +61,7 @@ python -m orchestrator_core.cli plan "upload pdf statements"
 pb-orchestrator plan "upload pdf statements"
 ```
 
-This prints resolved and missing capabilities and writes `plan.json` to the current directory.
+This prints a JSON array of structured execution plan steps (each with `step_id`, `action`, `inputs`, and `description`), and writes `plan.json` to the current directory.
 
 ## API (new)
 
@@ -81,9 +81,18 @@ curl -X POST "http://127.0.0.1:8000/plan" -H "Content-Type: application/json" \
 Response:
 
 ```json
-{
-  "prompt": "upload pdf statements",
-  "resolved": ["document_upload", ...],
-  "missing": ["statement_parser", ...]
-}
+[
+  {
+    "step_id": 1,
+    "action": "document_upload",
+    "inputs": {},
+    "description": "Upload PDF statements to storage"
+  },
+  {
+    "step_id": 2,
+    "action": "statement_parser",
+    "inputs": {},
+    "description": "Parse statements from uploaded PDF"
+  }
+]
 ```
