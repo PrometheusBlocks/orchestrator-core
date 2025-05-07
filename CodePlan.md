@@ -55,21 +55,29 @@ This document outlines the plan for the upcoming sprint, focused on two primary 
    - Validate JSON against schema (e.g., ensure `step_id` ordering, required fields).
    - Fall back to keyword-based capability extraction if LLM response is invalid or API errors occur.
 
-**Implementation Steps:**
+**Implementation Steps & Status:**
 1. Add dependency on `openai` in `requirements.txt` if not present or update to latest.
 2. Create or extend `orchestrator_core/planner/parser.py` with a new function (e.g., `prompt_to_plan`) encapsulating the above logic.
 3. Implement prompt templates, API invocation, and response parsing.
 4. Integrate `prompt_to_plan` into CLI (`orchestrator_core/cli.py`) and API endpoint (`orchestrator_core/api/main.py`), writing `plan.json` with the structured plan.
 5. Write unit tests in `tests/test_planner.py` that mock `openai.ChatCompletion` and verify both happy path (valid JSON) and failure modes (invalid JSON, API errors).
 6. Update documentation (CLI help text, README) to describe the new plan output format.
+   
+Status (2025-05-02):
+- [x] Step 1: Verified `openai` dependency in `requirements.txt`.
+- [x] Step 2: Implemented `prompt_to_plan` function.
+- [x] Step 3: Built prompt templates, API call, and response parsing with validation.
+- [x] Step 4: Integrated `prompt_to_plan` into CLI and API endpoint.
+- [x] Step 5: Added unit tests (`tests/test_planner_parser.py`).
+- [ ] Step 6: Documentation updates pending.
 
 ---
 
 ## 3. Timeline & Deliverables
 
 * Day 1-2 (2025-05-02): ✅ Migrate GitHub client to `requests`, update tests, and verify existing workflows.
-* Day 3-4: Prototype LLM plan generation; define prompt templates and output schema.
-* Day 5: Integrate into CLI/API and implement fallback logic.
+* Day 3-4 (2025-05-02): ✅ Prototype LLM plan generation; defined prompt templates and output schema.
+* Day 5 (2025-05-02): ✅ Integrate into CLI/API and implement fallback logic.
 * Day 6: Write comprehensive unit tests and update documentation.
 * Day 7: Final review, polish, and merge.
 

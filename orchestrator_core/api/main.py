@@ -11,6 +11,7 @@ def plan(payload: dict):
         raise HTTPException(
             status_code=400, detail="Missing or invalid 'prompt' in payload"
         )
-    from orchestrator_core.planner import make_plan
+    # Use LLM-based planner for structured execution plan
+    from orchestrator_core.planner.parser import prompt_to_plan
 
-    return make_plan(prompt)
+    return prompt_to_plan(prompt)
