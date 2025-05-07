@@ -1,7 +1,6 @@
 import argparse
 import json
 import sys
-from orchestrator_core.planner import make_plan  # legacy capability classification; now using LLM parser in plan subcommand
 
 from orchestrator_core.catalog.index import load_specs
 
@@ -44,6 +43,7 @@ def main(argv=None) -> None:
         # build and display structured execution plan via LLM parser
         prompt = " ".join(args.prompt)
         from orchestrator_core.planner.parser import prompt_to_plan
+
         plan_steps = prompt_to_plan(prompt)
         # Print plan as JSON
         print(json.dumps(plan_steps, indent=2))

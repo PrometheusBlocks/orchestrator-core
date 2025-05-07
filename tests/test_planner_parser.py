@@ -1,5 +1,4 @@
 import json
-import pytest
 import openai
 import orchestrator_core.planner.parser as parser
 
@@ -41,9 +40,11 @@ def test_prompt_to_plan_happy(monkeypatch):
 def test_prompt_to_plan_invalid_json(monkeypatch):
     # Simulate OpenAI returning invalid JSON
     # Simulate invalid JSON from LLM
-    monkeypatch.setattr(openai, "OpenAI", lambda api_key=None: DummyClient("not a json"))
+    monkeypatch.setattr(
+        openai, "OpenAI", lambda api_key=None: DummyClient("not a json")
+    )
     # Monkey-patch fallback capabilities
-    monkeypatch.setattr(parser, "prompt_to_capabilities", lambda prompt: ['cap1'])
+    monkeypatch.setattr(parser, "prompt_to_capabilities", lambda prompt: ["cap1"])
 
     plan = parser.prompt_to_plan("test prompt")
     # Fallback generates one step per capability
@@ -53,8 +54,10 @@ def test_prompt_to_plan_invalid_json(monkeypatch):
 def test_prompt_to_plan_api_error(monkeypatch):
     # Simulate API error
     # Simulate API error
-    monkeypatch.setattr(openai, "OpenAI", lambda api_key=None: DummyClient("irrelevant", error=True))
-    monkeypatch.setattr(parser, "prompt_to_capabilities", lambda prompt: ['A', 'B'])
+    monkeypatch.setattr(
+        openai, "OpenAI", lambda api_key=None: DummyClient("irrelevant", error=True)
+    )
+    monkeypatch.setattr(parser, "prompt_to_capabilities", lambda prompt: ["A", "B"])
 
     plan = parser.prompt_to_plan("another prompt")
     # Expect fallback plan with two steps
@@ -62,3 +65,14 @@ def test_prompt_to_plan_api_error(monkeypatch):
         {"step_id": 1, "action": "A", "inputs": {}, "description": ""},
         {"step_id": 2, "action": "B", "inputs": {}, "description": ""},
     ]
+
+
+def test_prompt_to_plan_object_response(monkeypatch):
+    # Simulate LLM returning a JSON object (rich response)
+    data_obj = {"used_capabilities": [], "plan_details": "some explanation"}
+    content = json.dumps(data_obj)
+    monkeypatch.setattr(openai, "OpenAI", lambda api_key=None: DummyClient(content))
+    plan = parser.prompt_to_plan("some prompt")
+    # Should return the dict as-is
+    assert isinstance(plan, dict)
+    assert plan == data_obj

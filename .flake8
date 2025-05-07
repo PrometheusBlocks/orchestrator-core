@@ -3,4 +3,4 @@
 [flake8]
 extend-ignore = E401,E501      
 max-line-length = 120           
-exclude = .git,__pycache__,.venv
+exclude = .git,__pycache__,.venv,venv

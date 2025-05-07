@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 import yaml
 
+# flake8: noqa: W293  # allow blank-line whitespace inside this file (e.g., in system_prompt docstring)
+
 
 def prompt_to_capabilities(prompt: str, use_llm: bool = False) -> list[str]:
     """
@@ -75,7 +77,8 @@ def prompt_to_capabilities(prompt: str, use_llm: bool = False) -> list[str]:
         except Exception:
             pass
     return caps
-  
+
+
 def prompt_to_plan(prompt: str) -> list[dict]:
     """
     Use OpenAI GPT-4.1 to generate a structured execution plan for the given prompt.
@@ -94,7 +97,7 @@ def prompt_to_plan(prompt: str) -> list[dict]:
         "You are a planning agent for PrometheusBlocks, a modular AI system composed of small, composable utility blocks."
         "Each block must conform to a schema called a utility contract."
         "This is the utility contract:"
-        f"""
+        r"""
         "Utility Contract — shared schema for all PrometheusBlocks utilities"
 
             from pydantic import BaseModel, Field"
@@ -140,11 +143,6 @@ def prompt_to_plan(prompt: str) -> list[dict]:
         utilities_json = json.dumps({"utilities": utilities})
     except Exception:
         utilities_json = "{}\n"
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "system", "content": f"Available utilities: {utilities_json}"},
-        {"role": "user", "content": prompt},
-    ]
     # Call OpenAI Responses API for structured planning
     try:
         import os
@@ -169,13 +167,30 @@ def prompt_to_plan(prompt: str) -> list[dict]:
                     if chunk.get("type") == "output_text":
                         parts.append(chunk.get("text", ""))
             content = "".join(parts)
-        plan = json.loads(content)
-        # Validate structure
-        if not isinstance(plan, list):
-            raise ValueError("Plan is not a list")
+        # Attempt to parse JSON plan directly
+        try:
+            plan_data = json.loads(content)
+        except json.JSONDecodeError:
+            # Attempt to extract JSON array from within the response text
+            import re
+
+            match = re.search(r"\[[\s\S]*?\]", content)
+            if match:
+                try:
+                    plan_data = json.loads(match.group(0))
+                except json.JSONDecodeError:
+                    raise ValueError("Failed to parse JSON plan from LLM response")
+            else:
+                raise ValueError("No JSON array found in LLM response")
+        # If response is a dict (rich JSON), return it directly
+        if isinstance(plan_data, dict):
+            return plan_data
+        # Otherwise, expect a list of step dicts
+        if not isinstance(plan_data, list):
+            raise ValueError("Plan is not a list or dict")
         validated: list[dict] = []
         expected_id = 1
-        for item in plan:
+        for item in plan_data:
             if (
                 not isinstance(item, dict)
                 or item.get("step_id") != expected_id
@@ -195,10 +210,12 @@ def prompt_to_plan(prompt: str) -> list[dict]:
         caps = prompt_to_capabilities(prompt)
         steps: list[dict] = []
         for idx, cap in enumerate(caps, start=1):
-            steps.append({
-                "step_id": idx,
-                "action": cap,
-                "inputs": {}, # Defaulting to empty inputs for fallback
-                "description": f"Keyword-based match for '{cap}'", # Add basic description
-            })
+            steps.append(
+                {
+                    "step_id": idx,
+                    "action": cap,
+                    "inputs": {},  # Defaulting to empty inputs for fallback
+                    "description": "",  # No description in fallback
+                }
+            )
         return steps
