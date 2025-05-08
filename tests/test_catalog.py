@@ -79,3 +79,37 @@ def test_load_specs(tmp_path, monkeypatch):
     assert (
         "corge" not in result
     )  # Should be skipped due to missing hyphen in filename stem
+
+
+def test_load_specs_preserves_source_url(tmp_path, monkeypatch):
+    # No local specs, remote spec includes source URL
+    fake_home = tmp_path / "home2"
+    registry_dir = fake_home / ".pb_registry"
+    registry_dir.mkdir(parents=True)
+    # Override HOME
+    from pathlib import Path as _Path
+
+    monkeypatch.setattr(_Path, "home", lambda: fake_home)
+    url = "https://github.com/org/utilx"
+    # Mock fetch_github_specs to return a spec with source URL
+    remote_spec = {
+        "utilx": {
+            "name": "utilx",
+            "version": "1.0.0",
+            "description": "x",
+            "_source_repository_url_discovered": url,
+        }
+    }
+    monkeypatch.setattr(
+        "orchestrator_core.catalog.github_client.fetch_github_specs",
+        lambda: remote_spec,
+    )
+    # Now load specs
+    from orchestrator_core.catalog import index
+
+    result = index.load_specs()
+    assert "utilx" in result
+    spec = result["utilx"]
+    assert spec.get("version") == "1.0.0"
+    # Source URL preserved
+    assert spec.get("_source_repository_url_discovered") == url

@@ -85,7 +85,13 @@ def fetch_github_specs(
                 curr_ver = None
             if curr_ver is not None and ver <= curr_ver:
                 continue
-        specs[spec.name] = spec.model_dump()
+        # Serialize spec and capture source repository URL from search results
+        dump = spec.model_dump()
+        repo_info = item.get("repository", {})
+        repo_url = repo_info.get("html_url")
+        if repo_url:
+            dump["_source_repository_url_discovered"] = repo_url
+        specs[spec.name] = dump
 
     # 2) Fallback: attempt to fetch utility_contract.json from each repo root
     if not specs:
@@ -136,6 +142,11 @@ def fetch_github_specs(
                     curr_ver = None
                 if curr_ver is not None and ver <= curr_ver:
                     continue
-            specs[spec.name] = spec.model_dump()
+            # Serialize spec and capture source repository URL from repo listing
+            dump = spec.model_dump()
+            repo_url = repo.get("html_url")
+            if repo_url:
+                dump["_source_repository_url_discovered"] = repo_url
+            specs[spec.name] = dump
 
     return specs

@@ -1,10 +1,243 @@
 {
-  "prompt": "upload pdf bank statement and see retirement simulation",
-  "resolved": [
-    "document_upload"
+  "used_capabilities": [],
+  "missing_capabilities": [
+    "Extraction/parsing utilities for importing and normalizing data from various financial documents (banking statements, brokerage statements, credit card statements, mortgage docs, insurance docs)",
+    "Aggregation and categorization block to unify financial data by entity and date",
+    "Financial analytics block for insights (spending trends, investment allocations, liabilities, coverage gaps, etc.)",
+    "AI-powered financial advisor block to synthesize user goals, risk tolerance, and provided analytics into comprehensive, actionable advice",
+    "Secure data handling, privacy, and anonymization utilities"
   ],
-  "missing": [
-    "statement_parser",
-    "financial_engine"
-  ]
+  "proposed_utilities": [
+    {
+      "name": "FinancialDocumentParser",
+      "version": "0.1.0",
+      "language": "python",
+      "description": "Extracts, normalizes, and structures data from uploaded banking, brokerage, credit, mortgage, and insurance statements in PDF, CSV, OFX, and XLS formats.",
+      "size_budget": 200000,
+      "entrypoints": [
+        {
+          "name": "parse_document",
+          "description": "Parses a single financial document and returns structured transaction or holding data.",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string"
+              },
+              "document_type": {
+                "type": "string",
+                "enum": [
+                  "bank",
+                  "brokerage",
+                  "credit_card",
+                  "mortgage",
+                  "insurance"
+                ]
+              },
+              "file_format": {
+                "type": "string",
+                "enum": [
+                  "pdf",
+                  "csv",
+                  "ofx",
+                  "xls"
+                ]
+              }
+            },
+            "required": [
+              "file_path",
+              "document_type",
+              "file_format"
+            ]
+          },
+          "return_schema": {
+            "type": "object"
+          }
+        }
+      ],
+      "deps": [
+        {
+          "package": "pdfplumber",
+          "version": "0.10.2"
+        },
+        {
+          "package": "pandas",
+          "version": "1.3.5"
+        }
+      ],
+      "tests": [
+        "parse_document with sample bank PDF returns expected schema"
+      ]
+    },
+    {
+      "name": "FinancialDataAggregator",
+      "version": "0.1.0",
+      "language": "python",
+      "description": "Aggregates and categorizes financial data from multiple sources, unifying transactions, balances, liabilities, and asset holdings by user and date.",
+      "size_budget": 60000,
+      "entrypoints": [
+        {
+          "name": "aggregate_data",
+          "description": "Aggregates lists of structured statement data into unified user profile.",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "statements_data": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "statements_data"
+            ]
+          },
+          "return_schema": {
+            "type": "object"
+          }
+        }
+      ],
+      "deps": [
+        {
+          "package": "pandas",
+          "version": "1.3.5"
+        }
+      ],
+      "tests": [
+        "aggregate_data with bank and brokerage data produces expected output"
+      ]
+    },
+    {
+      "name": "FinancialAnalyticsBlock",
+      "version": "0.1.0",
+      "language": "python",
+      "description": "Analyzes unified financial data for trends, investment analysis, debt analysis, insurance coverage gaps, and potential risk factors.",
+      "size_budget": 80000,
+      "entrypoints": [
+        {
+          "name": "analyze_profile",
+          "description": "Provides detailed financial analytics for a unified user profile.",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "profile": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "return_schema": {
+            "type": "object"
+          }
+        }
+      ],
+      "deps": [
+        {
+          "package": "numpy",
+          "version": "1.21.2"
+        }
+      ],
+      "tests": [
+        "analyze_profile identifies overspending and underinsured cases"
+      ]
+    },
+    {
+      "name": "AIFinancialAdvisor",
+      "version": "0.1.0",
+      "language": "python",
+      "description": "Synthesizes analytics, user goals, and preferences to generate personalized, actionable financial advice.",
+      "size_budget": 120000,
+      "entrypoints": [
+        {
+          "name": "generate_advice",
+          "description": "Takes analytics and user context and outputs advice.",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "analytics": {
+                "type": "object"
+              },
+              "user_goals": {
+                "type": "object"
+              },
+              "risk_tolerance": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              }
+            },
+            "required": [
+              "analytics",
+              "user_goals",
+              "risk_tolerance"
+            ]
+          },
+          "return_schema": {
+            "type": "object",
+            "properties": {
+              "advice": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "deps": [
+        {
+          "package": "openai",
+          "version": "0.27.0"
+        },
+        {
+          "package": "scikit-learn",
+          "version": "0.24.2"
+        }
+      ],
+      "tests": [
+        "generate_advice produces actionable advice for typical financial situations"
+      ]
+    },
+    {
+      "name": "SecureDataHandler",
+      "version": "0.1.0",
+      "language": "python",
+      "description": "Ensures all user data is securely handled, stored, anonymized, and privacy-compliant.",
+      "size_budget": 50000,
+      "entrypoints": [
+        {
+          "name": "anonymize_profile",
+          "description": "Removes or hashes all personal identifiers from a profile object.",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "profile": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "return_schema": {
+            "type": "object"
+          }
+        }
+      ],
+      "deps": [
+        {
+          "package": "cryptography",
+          "version": "3.4.7"
+        }
+      ],
+      "tests": [
+        "anonymize_profile returns no recognizable PII"
+      ]
+    }
+  ],
+  "plan": "There are currently no existing utilities available for this task. To implement a financial advisor app as described, you require a pipeline of modular utilities: (1) data extraction/parsing utilities to import and normalize the broad array of financial documents users may upload, (2) a data aggregator/categorizer to unify and categorize the data, (3) an analytics block to derive trends, findings, and coverage/investment summaries, (4) an AI-powered financial advisor block which uses analytics and user context to generate actionable advice, and (5) a secure data handler for privacy and compliance. These modular blocks\u2014described above as proposed utilities\u2014would together allow you to build, maintain, and extend a robust AI-powered financial advisor app."
 }
