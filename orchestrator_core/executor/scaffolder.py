@@ -41,6 +41,19 @@ def clone_repository(
         return False
 
 
+def init_git_repo(repo_dir: Path) -> bool:
+    """Initialize a git repository in the given directory."""
+    try:
+        subprocess.run(["git", "init"], cwd=repo_dir, check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to initialize git repo in {repo_dir}: {e}")
+        return False
+    except Exception as e:  # pragma: no cover - unexpected errors
+        logger.error(f"Unexpected error during git init in {repo_dir}: {e}")
+        return False
+
+
 def customize_new_utility_from_template(template_dir: Path, new_utility_name: str):
     """
     Customize a generic block template in template_dir for a new utility named new_utility_name.
@@ -132,6 +145,7 @@ def scaffold_project(
             logger.error(f"Failed to clone resolved utility '{util}' from {repo_url}")
         else:
             logger.info(f"Successfully cloned resolved utility '{util}'")
+            init_git_repo(util_dir)
     # Handle missing utilities (scaffold new)
     for util in plan.get("missing", []):
         util_dir = main_project_path / util
@@ -144,4 +158,5 @@ def scaffold_project(
             continue
         customize_new_utility_from_template(util_dir, util)
         logger.info(f"Successfully scaffolded missing utility '{util}'")
+        init_git_repo(util_dir)
     return main_project_path
