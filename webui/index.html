@@ -209,6 +209,7 @@
         const [contracts, setContracts] = React.useState({});
         const [error, setError] = React.useState('');
         const [stage, setStage] = React.useState('input');
+        const [scaffolded, setScaffolded] = React.useState(false);
         const textareaRef = React.useRef(null);
 
         const handleSubmit = async (e) => {
@@ -218,6 +219,7 @@
           setContracts({});
           setProposed([]);
           setPlan(null);
+          setScaffolded(false);
           setStage('loading');
           try {
             const res = await fetch('/plan', {
@@ -257,6 +259,33 @@
           } catch (err) {
             setContracts((c) => ({ ...c, [name]: { error: err.toString() } }));
           }
+        };
+
+        const handleScaffold = async () => {
+          const projectName = prompt('Project folder name?', 'my_project');
+          if (!projectName) return;
+          const baseDir = prompt('Base directory on server', '.');
+          try {
+            const res = await fetch('/scaffold_project', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                plan,
+                project_name: projectName,
+                output_base_dir: baseDir,
+                template_url: 'https://github.com/PrometheusBlocks/block-template.git',
+              }),
+            });
+            if (!res.ok) throw new Error('Scaffolding failed');
+            await res.json();
+            setScaffolded(true);
+          } catch (err) {
+            alert(err.toString());
+          }
+        };
+
+        const handleCreateBlocks = () => {
+          alert("You're almost there!");
         };
 
         return (
@@ -305,6 +334,14 @@
                       <ProposedCard key={u.name} util={u} />
                     ))}
                   </div>
+                )}
+                <button onClick={handleScaffold} style={{ marginTop: '16px' }}>
+                  Scaffold Plan
+                </button>
+                {scaffolded && (
+                  <button onClick={handleCreateBlocks} style={{ marginTop: '8px' }}>
+                    Create the blocks
+                  </button>
                 )}
               </div>
             )}

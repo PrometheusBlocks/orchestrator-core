@@ -89,6 +89,12 @@ def test_scaffold_project_calls(monkeypatch, tmp_path):
     monkeypatch.setattr(
         scaffolder, "customize_new_utility_from_template", fake_customize
     )
+
+    def fake_init(repo_dir):
+        calls.append(("init", str(repo_dir)))
+        return True
+
+    monkeypatch.setattr(scaffolder, "init_git_repo", fake_init)
     # Run scaffolding
     project_path = scaffolder.scaffold_project(plan, base, project_name, template_url)
     # Verify returned path
@@ -102,3 +108,5 @@ def test_scaffold_project_calls(monkeypatch, tmp_path):
     ) in calls
     assert ("clone", template_url, str(base / project_name / "b"), None) in calls
     assert ("customize", str(base / project_name / "b"), "b") in calls
+    assert ("init", str(base / project_name / "a")) in calls
+    assert ("init", str(base / project_name / "b")) in calls
