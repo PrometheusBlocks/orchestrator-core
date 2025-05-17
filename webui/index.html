@@ -23,14 +23,25 @@
         margin: 0;
       }
 
-      input {
+      textarea {
         padding: 12px;
-        width: 350px;
+        width: 100%;
         font-size: 1.1em;
         background: #333;
         color: #fff;
+        border: none;
+        resize: none;
+        overflow: hidden;
+        font-family: 'Roboto', Arial, sans-serif;
+      }
+
+      .prompt-container {
+        display: flex;
+        align-items: center;
+        width: 350px;
         border: 1px solid #555;
         border-radius: 10px;
+        background: #333;
       }
 
       .send-btn {
@@ -46,6 +57,10 @@
         justify-content: center;
         align-items: center;
         font-size: 1.2em;
+      }
+
+      .prompt-container textarea {
+        flex: 1;
       }
 
       .fade-out {
@@ -157,6 +172,35 @@
         );
       }
 
+      function ProposedCard({ util }) {
+        const [open, setOpen] = React.useState(false);
+        return (
+          <div
+            className={`utility-card ${open ? 'open' : ''}`}
+            onClick={() => setOpen(!open)}
+          >
+            <h3>{util.name}</h3>
+            {open && (
+              <>
+                <p>{util.description}</p>
+                {util.entrypoints && (
+                  <div>
+                    <strong>Entrypoints:</strong>
+                    <ul>
+                      {util.entrypoints.map((ept) => (
+                        <li key={ept.name}>
+                          {ept.name}: {ept.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      }
+
       function App() {
         const [prompt, setPrompt] = React.useState('');
         const [plan, setPlan] = React.useState(null);
@@ -165,6 +209,7 @@
         const [contracts, setContracts] = React.useState({});
         const [error, setError] = React.useState('');
         const [stage, setStage] = React.useState('input');
+        const textareaRef = React.useRef(null);
 
         const handleSubmit = async (e) => {
           e.preventDefault();
@@ -187,7 +232,9 @@
             if (Array.isArray(data)) {
               utils = data.map((s) => s.action);
             } else if (data && Array.isArray(data.resolved)) {
-              utils = data.resolved;
+              utils = data.resolved.map((r) =>
+                typeof r === 'string' ? r : r.name
+              );
             }
             setUtilities(utils);
             if (data && Array.isArray(data.proposed_utilities)) {
@@ -217,11 +264,21 @@
             <h1 className={stage === 'loading' ? 'fade-out' : ''}>What do you want to build?</h1>
             {stage === 'input' && (
               <form onSubmit={handleSubmit} className={stage === 'loading' ? 'fade-out' : ''}>
-                <input
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                />
-                <button type="submit" className="send-btn">&#x2191;</button>
+                <div className="prompt-container">
+                  <textarea
+                    ref={textareaRef}
+                    value={prompt}
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      if (textareaRef.current) {
+                        textareaRef.current.style.height = 'auto';
+                        textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+                      }
+                    }}
+                    rows={1}
+                  />
+                  <button type="submit" className="send-btn">&#x2191;</button>
+                </div>
               </form>
             )}
             {stage === 'loading' && <div className="kindling"></div>}
@@ -230,9 +287,6 @@
               <div className="centered">
                 <h2>Execution Plan</h2>
                 {plan.plan && <p className="plan-text">{plan.plan}</p>}
-                <pre style={{ whiteSpace: 'pre-wrap' }}>
-                  {JSON.stringify(plan, null, 2)}
-                </pre>
                 <h2>Blocks</h2>
                 <div className="centered">
                   {utilities.map((u) => (
@@ -248,22 +302,7 @@
                   <div className="centered" style={{ width: '100%', maxWidth: '600px' }}>
                     <h2>Proposed Utilities</h2>
                     {proposed.map((u) => (
-                      <div key={u.name} className="utility-card open">
-                        <h3>{u.name}</h3>
-                        <p>{u.description}</p>
-                        {u.entrypoints && (
-                          <div>
-                            <strong>Entrypoints:</strong>
-                            <ul>
-                              {u.entrypoints.map((ept) => (
-                                <li key={ept.name}>
-                                  {ept.name}: {ept.description}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
+                      <ProposedCard key={u.name} util={u} />
                     ))}
                   </div>
                 )}
