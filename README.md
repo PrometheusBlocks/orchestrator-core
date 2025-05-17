@@ -129,17 +129,16 @@ python -m orchestrator_core.cli execute ./my_project --utility myutil --entrypoi
 ## Web UI (new)
 
 A minimal React-based frontend is included under `webui/`.
-Launch a simple HTTP server and open the page in your browser:
+The API server now serves this UI directly. Start the app with:
 
 ```bash
-cd webui
-python -m http.server 3000
-# Visit http://localhost:3000
+uvicorn orchestrator_core.api.main:app --reload
+# Visit http://localhost:8000
 ```
 
 The landing page asks *"What do you want to build?"*. After submitting a
 prompt, it calls the `/plan` API and lists the utilities found. Clicking a
-utility fetches its contract from the new `/utility/{name}` endpoint.
+utility fetches its contract from the `/utility/{name}` endpoint.
 
 ## New API Endpoint
 
