@@ -22,17 +22,64 @@
         min-height: 100vh;
         margin: 0;
       }
+
       input {
-        padding: 8px;
-        width: 300px;
+        padding: 12px;
+        width: 350px;
+        font-size: 1.1em;
         background: #333;
         color: #fff;
         border: 1px solid #555;
+        border-radius: 10px;
       }
-      button {
+
+      .send-btn {
         margin-left: 8px;
-        padding: 8px 12px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: none;
+        background: #ff8c00;
+        color: #121212;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.2em;
       }
+
+      .fade-out {
+        animation: fadeOut 0.5s forwards;
+      }
+
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+      }
+
+      .kindling {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #ffb347, #ff8c00, #b84d00);
+        animation: flicker 1s infinite alternate;
+        margin: 40px auto;
+      }
+
+      @keyframes flicker {
+        from {
+          opacity: 0.7;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
       ul {
         list-style: none;
         padding: 0;
@@ -51,22 +98,65 @@
       .utility-card {
         background: #1e1e1e;
         padding: 12px;
-        margin: 10px 0;
-        border-radius: 4px;
+        margin: 10px auto;
+        border-radius: 24px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        width: 100%;
-        max-width: 600px;
+        width: 200px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
       }
+
+      .utility-card.open {
+        width: 80%;
+        max-width: 600px;
+        text-align: left;
+      }
+
       .plan-text {
         font-family: 'Roboto', Arial, sans-serif;
         font-size: 1.1em;
         color: #ddd;
+      }
+
+      .centered {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="text/babel">
+      function UtilityCard({ name, fetchContract, contract }) {
+        const [open, setOpen] = React.useState(false);
+        React.useEffect(() => {
+          if (open && !contract) {
+            fetchContract(name);
+          }
+        }, [open]);
+        return (
+          <div
+            className={`utility-card ${open ? 'open' : ''}`}
+            onClick={() => setOpen(!open)}
+          >
+            <h3>{name}</h3>
+            {open && contract && (
+              contract.error ? (
+                <p style={{ color: 'red' }}>{contract.error}</p>
+              ) : (
+                <pre style={{ whiteSpace: 'pre-wrap' }}>
+                  {JSON.stringify(contract, null, 2)}
+                </pre>
+              )
+            )}
+            {open && !contract && <p>Loading...</p>}
+          </div>
+        );
+      }
+
       function App() {
         const [prompt, setPrompt] = React.useState('');
         const [plan, setPlan] = React.useState(null);
@@ -74,6 +164,7 @@
         const [proposed, setProposed] = React.useState([]);
         const [contracts, setContracts] = React.useState({});
         const [error, setError] = React.useState('');
+        const [stage, setStage] = React.useState('input');
 
         const handleSubmit = async (e) => {
           e.preventDefault();
@@ -82,6 +173,7 @@
           setContracts({});
           setProposed([]);
           setPlan(null);
+          setStage('loading');
           try {
             const res = await fetch('/plan', {
               method: 'POST',
@@ -101,8 +193,10 @@
             if (data && Array.isArray(data.proposed_utilities)) {
               setProposed(data.proposed_utilities);
             }
+            setStage('plan');
           } catch (err) {
             setError(err.toString());
+            setStage('input');
           }
         };
 
@@ -119,67 +213,60 @@
         };
 
         return (
-          <div>
-            <h1>What do you want to build?</h1>
-            <form onSubmit={handleSubmit}>
-              <input
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-              />
-              <button type="submit">Plan</button>
-            </form>
+          <div className="centered">
+            <h1 className={stage === 'loading' ? 'fade-out' : ''}>What do you want to build?</h1>
+            {stage === 'input' && (
+              <form onSubmit={handleSubmit} className={stage === 'loading' ? 'fade-out' : ''}>
+                <input
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                />
+                <button type="submit" className="send-btn">&#x2191;</button>
+              </form>
+            )}
+            {stage === 'loading' && <div className="kindling"></div>}
             {error && <p style={{ color: 'red' }}>{error}</p>}
-            {plan && (
-              <div>
+            {stage === 'plan' && plan && (
+              <div className="centered">
                 <h2>Execution Plan</h2>
                 {plan.plan && <p className="plan-text">{plan.plan}</p>}
                 <pre style={{ whiteSpace: 'pre-wrap' }}>
                   {JSON.stringify(plan, null, 2)}
                 </pre>
-              </div>
-            )}
-            <h2>Blocks</h2>
-            <ul>
-              {utilities.map((u) => (
-                <li key={u}>
-                  <details onToggle={(e) => { if (e.target.open) fetchContract(u); }}>
-                    <summary>{u}</summary>
-                    {contracts[u] ? (
-                      contracts[u].error ? (
-                        <p style={{ color: 'red' }}>{contracts[u].error}</p>
-                      ) : (
-                        <pre style={{ whiteSpace: 'pre-wrap' }}>
-                          {JSON.stringify(contracts[u], null, 2)}
-                        </pre>
-                      )
-                    ) : (
-                      <p>Loading...</p>
-                    )}
-                  </details>
-                </li>
-              ))}
-            </ul>
-            {proposed.length > 0 && (
-              <div style={{ width: '100%', maxWidth: '600px' }}>
-                <h2>Proposed Utilities</h2>
-                {proposed.map((u) => (
-                  <div key={u.name} className="utility-card">
-                    <h3>{u.name}</h3>
-                    <p>{u.description}</p>
-                    {u.entrypoints && (
-                      <div>
-                        <strong>Entrypoints:</strong>
-                        <ul>
-                          {u.entrypoints.map((ept) => (
-                            <li key={ept.name}>
-                              {ept.name}: {ept.description}
-                            </li>
-                          ))}
-                        </ul>
+                <h2>Blocks</h2>
+                <div className="centered">
+                  {utilities.map((u) => (
+                    <UtilityCard
+                      key={u}
+                      name={u}
+                      fetchContract={fetchContract}
+                      contract={contracts[u]}
+                    />
+                  ))}
+                </div>
+                {proposed.length > 0 && (
+                  <div className="centered" style={{ width: '100%', maxWidth: '600px' }}>
+                    <h2>Proposed Utilities</h2>
+                    {proposed.map((u) => (
+                      <div key={u.name} className="utility-card open">
+                        <h3>{u.name}</h3>
+                        <p>{u.description}</p>
+                        {u.entrypoints && (
+                          <div>
+                            <strong>Entrypoints:</strong>
+                            <ul>
+                              {u.entrypoints.map((ept) => (
+                                <li key={ept.name}>
+                                  {ept.name}: {ept.description}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
