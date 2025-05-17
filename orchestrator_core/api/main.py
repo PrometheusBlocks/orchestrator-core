@@ -1,6 +1,19 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from pathlib import Path
+
+WEBUI_DIR = Path(__file__).resolve().parents[2] / "webui"
 
 app = FastAPI()
+
+
+@app.get("/")
+def serve_webui():
+    """Serve the Web UI index page."""
+    index_file = WEBUI_DIR / "index.html"
+    if not index_file.exists():
+        raise HTTPException(status_code=404, detail="Web UI not found")
+    return FileResponse(index_file)
 
 
 @app.post("/plan")

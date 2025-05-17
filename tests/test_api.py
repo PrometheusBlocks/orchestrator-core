@@ -19,3 +19,10 @@ def test_get_utility_not_found(monkeypatch):
     client = TestClient(app)
     response = client.get("/utility/bar")
     assert response.status_code == 404
+
+
+def test_root_serves_webui(tmp_path):
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "PrometheusBlocks WebUI" in response.text
