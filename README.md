@@ -114,3 +114,14 @@ Options:
   * `--plan`: Path to the input plan JSON file (default: `plan.json`).
   * `--outdir`: Base directory to create the project (default: current directory).
   * `--template-url`: Git URL of the generic block template.
+
+## Execute (new)
+
+Run a single utility entrypoint within a scaffolded project. Dependencies from
+each utility's `requirements.txt` are installed into an isolated virtual
+environment under the project directory on first use.
+
+```bash
+# Execute the 'hello' entrypoint of utility 'myutil' inside ./my_project
+python -m orchestrator_core.cli execute ./my_project --utility myutil --entrypoint hello --params_json '{"name": "World"}'
+```

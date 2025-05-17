@@ -6,6 +6,20 @@ from pathlib import Path
 from orchestrator_core.catalog.index import load_specs
 
 
+def _load_params(source: str) -> dict:
+    """Load parameters from a JSON string or file path."""
+    path = Path(source)
+    if path.exists():
+        try:
+            return json.loads(path.read_text())
+        except Exception as exc:  # pragma: no cover - file read errors
+            sys.exit(f"Failed to read parameters file '{source}': {exc}")
+    try:
+        return json.loads(source)
+    except json.JSONDecodeError as exc:
+        sys.exit(f"Invalid JSON for parameters: {exc}")
+
+
 def _list() -> None:
     """Print a table of available specs."""
     specs = load_specs()
@@ -61,6 +75,21 @@ def main(argv=None) -> None:
     scaffold_p.add_argument(
         "project_name",
         help="Name of the project directory to create",
+    )
+
+    execute_p = sub.add_parser(
+        "execute",
+        help="Execute a single utility entrypoint in a scaffolded project",
+    )
+    execute_p.add_argument("project", help="Path to project directory")
+    execute_p.add_argument("--utility", required=True, help="Utility id to run")
+    execute_p.add_argument(
+        "--entrypoint", required=True, help="Entrypoint function name"
+    )
+    execute_p.add_argument(
+        "--params_json",
+        default="{}",
+        help="JSON string or path to JSON file with parameters",
     )
     args = parser.parse_args(argv)
     if args.cmd == "list":
@@ -158,6 +187,23 @@ def main(argv=None) -> None:
                         file=sys.stderr,
                     )
         print(f"Scaffolded project created at: {project_path}")
+    elif args.cmd == "execute":
+        from orchestrator_core.executor.runner import execute_utility
+
+        params = _load_params(args.params_json)
+        result = execute_utility(
+            Path(args.project), args.utility, args.entrypoint, params
+        )
+        print(
+            json.dumps(
+                {
+                    "return": result.return_value,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                },
+                indent=2,
+            )
+        )
     else:
         parser.print_help()
 
