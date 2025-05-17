@@ -51,13 +51,17 @@
     <script type="text/babel">
       function App() {
         const [prompt, setPrompt] = React.useState('');
+        const [plan, setPlan] = React.useState(null);
         const [utilities, setUtilities] = React.useState([]);
+        const [contracts, setContracts] = React.useState({});
         const [error, setError] = React.useState('');
 
         const handleSubmit = async (e) => {
           e.preventDefault();
           setError('');
           setUtilities([]);
+          setContracts({});
+          setPlan(null);
           try {
             const res = await fetch('/plan', {
               method: 'POST',
@@ -66,6 +70,7 @@
             });
             if (!res.ok) throw new Error('Planning failed');
             const data = await res.json();
+            setPlan(data);
             let utils = [];
             if (Array.isArray(data)) {
               utils = data.map((s) => s.action);
@@ -79,13 +84,14 @@
         };
 
         const fetchContract = async (name) => {
+          if (contracts[name]) return;
           try {
             const res = await fetch(`/utility/${name}`);
             if (!res.ok) throw new Error('Utility not found');
             const contract = await res.json();
-            alert(JSON.stringify(contract, null, 2));
+            setContracts((c) => ({ ...c, [name]: contract }));
           } catch (err) {
-            alert(err.toString());
+            setContracts((c) => ({ ...c, [name]: { error: err.toString() } }));
           }
         };
 
@@ -100,15 +106,32 @@
               <button type="submit">Plan</button>
             </form>
             {error && <p style={{ color: 'red' }}>{error}</p>}
+            {plan && (
+              <div>
+                <h2>Execution Plan</h2>
+                <pre style={{ whiteSpace: 'pre-wrap' }}>
+                  {JSON.stringify(plan, null, 2)}
+                </pre>
+              </div>
+            )}
+            <h2>Blocks</h2>
             <ul>
               {utilities.map((u) => (
                 <li key={u}>
-                  <button
-                    className="link-button"
-                    onClick={() => fetchContract(u)}
-                  >
-                    {u}
-                  </button>
+                  <details onToggle={(e) => { if (e.target.open) fetchContract(u); }}>
+                    <summary>{u}</summary>
+                    {contracts[u] ? (
+                      contracts[u].error ? (
+                        <p style={{ color: 'red' }}>{contracts[u].error}</p>
+                      ) : (
+                        <pre style={{ whiteSpace: 'pre-wrap' }}>
+                          {JSON.stringify(contracts[u], null, 2)}
+                        </pre>
+                      )
+                    ) : (
+                      <p>Loading...</p>
+                    )}
+                  </details>
                 </li>
               ))}
             </ul>
