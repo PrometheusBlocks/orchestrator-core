@@ -63,9 +63,27 @@ def test_customize_new_utility_from_template(tmp_path):
     assert data["version"] == "0.1.0-dev"
 
 
+def test_customize_new_utility_with_contract(tmp_path):
+    template_dir = tmp_path / "template2"
+    template_dir.mkdir()
+    f = template_dir / "README.md"
+    f.write_text("Hello {{UTILITY_NAME}}")
+    contract = {"name": "foo", "version": "1.0.0"}
+    scaffolder.customize_new_utility_from_template(
+        template_dir, "foo", contract_data=contract
+    )
+    data = json.loads((template_dir / "utility_contract.json").read_text())
+    assert data == contract
+    assert "foo" in f.read_text()
+
+
 def test_scaffold_project_calls(monkeypatch, tmp_path):
     # Prepare plan with one resolved and one missing utility
-    plan = {"resolved": ["a"], "missing": ["b"]}
+    plan = {
+        "resolved": ["a"],
+        "missing": ["b"],
+        "proposed_utilities": [{"name": "b", "version": "1.0"}],
+    }
     base = tmp_path / "projects"
     project_name = "proj"
     template_url = "https://example.com/template.git"
@@ -83,8 +101,8 @@ def test_scaffold_project_calls(monkeypatch, tmp_path):
 
     monkeypatch.setattr(scaffolder, "clone_repository", fake_clone)
 
-    def fake_customize(target_dir, name):
-        calls.append(("customize", str(target_dir), name))
+    def fake_customize(target_dir, name, contract_data=None):
+        calls.append(("customize", str(target_dir), name, contract_data))
 
     monkeypatch.setattr(
         scaffolder, "customize_new_utility_from_template", fake_customize
@@ -107,6 +125,11 @@ def test_scaffold_project_calls(monkeypatch, tmp_path):
         None,
     ) in calls
     assert ("clone", template_url, str(base / project_name / "b"), None) in calls
-    assert ("customize", str(base / project_name / "b"), "b") in calls
+    assert (
+        "customize",
+        str(base / project_name / "b"),
+        "b",
+        {"name": "b", "version": "1.0"},
+    ) in calls
     assert ("init", str(base / project_name / "a")) in calls
     assert ("init", str(base / project_name / "b")) in calls
