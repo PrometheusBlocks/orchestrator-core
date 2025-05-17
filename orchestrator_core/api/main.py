@@ -63,3 +63,21 @@ def scaffold_project_endpoint(payload: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error scaffolding project: {e}")
     return {"project_path": str(project_path)}
+
+
+@app.get("/utility/{name}")
+def get_utility_contract(name: str):
+    """Return the contract for a named utility.
+
+    Parameters
+    ----------
+    name: str
+        Name of the utility contract to retrieve.
+    """
+    from orchestrator_core.catalog.index import load_specs
+
+    specs = load_specs()
+    spec = specs.get(name)
+    if spec is None:
+        raise HTTPException(status_code=404, detail="Utility not found")
+    return spec

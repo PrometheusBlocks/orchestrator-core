@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PrometheusBlocks WebUI</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+      body {
+        background: #121212;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        min-height: 100vh;
+        margin: 0;
+      }
+      input {
+        padding: 8px;
+        width: 300px;
+        background: #333;
+        color: #fff;
+        border: 1px solid #555;
+      }
+      button {
+        margin-left: 8px;
+        padding: 8px 12px;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        margin-top: 8px;
+      }
+      .link-button {
+        background: none;
+        border: none;
+        color: #4da3ff;
+        cursor: pointer;
+        text-decoration: underline;
+        font-size: 1em;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      function App() {
+        const [prompt, setPrompt] = React.useState('');
+        const [utilities, setUtilities] = React.useState([]);
+        const [error, setError] = React.useState('');
+
+        const handleSubmit = async (e) => {
+          e.preventDefault();
+          setError('');
+          setUtilities([]);
+          try {
+            const res = await fetch('/plan', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt }),
+            });
+            if (!res.ok) throw new Error('Planning failed');
+            const data = await res.json();
+            let utils = [];
+            if (Array.isArray(data)) {
+              utils = data.map((s) => s.action);
+            } else if (data && Array.isArray(data.resolved)) {
+              utils = data.resolved;
+            }
+            setUtilities(utils);
+          } catch (err) {
+            setError(err.toString());
+          }
+        };
+
+        const fetchContract = async (name) => {
+          try {
+            const res = await fetch(`/utility/${name}`);
+            if (!res.ok) throw new Error('Utility not found');
+            const contract = await res.json();
+            alert(JSON.stringify(contract, null, 2));
+          } catch (err) {
+            alert(err.toString());
+          }
+        };
+
+        return (
+          <div>
+            <h1>What do you want to build?</h1>
+            <form onSubmit={handleSubmit}>
+              <input
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+              />
+              <button type="submit">Plan</button>
+            </form>
+            {error && <p style={{ color: 'red' }}>{error}</p>}
+            <ul>
+              {utilities.map((u) => (
+                <li key={u}>
+                  <button
+                    className="link-button"
+                    onClick={() => fetchContract(u)}
+                  >
+                    {u}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
+
+      ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+  </body>
+</html>
