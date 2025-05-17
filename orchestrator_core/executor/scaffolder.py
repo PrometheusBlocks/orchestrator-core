@@ -54,10 +54,16 @@ def init_git_repo(repo_dir: Path) -> bool:
         return False
 
 
-def customize_new_utility_from_template(template_dir: Path, new_utility_name: str):
+def customize_new_utility_from_template(
+    template_dir: Path, new_utility_name: str, contract_data: Optional[dict] = None
+):
     """
-    Customize a generic block template in template_dir for a new utility named new_utility_name.
-    Replaces placeholders and generates a placeholder utility_contract.json.
+    Customize a generic block template in ``template_dir`` for a new utility named
+    ``new_utility_name``.
+
+    If ``contract_data`` is provided, it is written as ``utility_contract.json``;
+    otherwise a minimal placeholder contract is created. All ``{{UTILITY_NAME}}``
+    placeholders in the template files are replaced with ``new_utility_name``.
     """
     logger.info(
         f"Customizing template in {template_dir} for utility '{new_utility_name}'"
@@ -75,27 +81,31 @@ def customize_new_utility_from_template(template_dir: Path, new_utility_name: st
                     path.write_text(new_content)
                 except Exception as e:
                     logger.warning(f"Could not write to {path}: {e}")
-    # Generate placeholder utility_contract.json
-    placeholder_contract = {
-        "name": new_utility_name,
-        "version": "0.1.0-dev",
-        "language": "python",
-        "description": f"Scaffolded utility: {new_utility_name}",
-        "entrypoints": [
-            {
-                "name": "run",
-                "description": "Default entry point",
-                "parameters_schema": {},
-                "return_schema": {},
-            }
-        ],
-        "deps": [],
-        "tests": [],
-    }
+    # Generate utility_contract.json
+    contract = (
+        contract_data
+        if contract_data is not None
+        else {
+            "name": new_utility_name,
+            "version": "0.1.0-dev",
+            "language": "python",
+            "description": f"Scaffolded utility: {new_utility_name}",
+            "entrypoints": [
+                {
+                    "name": "run",
+                    "description": "Default entry point",
+                    "parameters_schema": {},
+                    "return_schema": {},
+                }
+            ],
+            "deps": [],
+            "tests": [],
+        }
+    )
     contract_path = template_dir / "utility_contract.json"
     try:
         with contract_path.open("w") as f:
-            json.dump(placeholder_contract, f, indent=2)
+            json.dump(contract, f, indent=2)
         logger.info(f"Created placeholder utility_contract.json at {contract_path}")
     except Exception as e:
         logger.error(
@@ -123,6 +133,13 @@ def scaffold_project(
         main_project_path.mkdir(parents=True)
     # Load all known specs
     all_specs = load_specs()
+    # Map proposed utilities by name for easy lookup
+    proposed_map = {
+        u.get("name"): u
+        for u in plan.get("proposed_utilities", [])
+        if isinstance(u, dict) and u.get("name")
+    }
+
     # Handle resolved utilities (clone existing repos)
     for util in plan.get("resolved", []):
         util_dir = main_project_path / util
@@ -156,7 +173,8 @@ def scaffold_project(
                 f"Failed to scaffold missing utility '{util}' from template {generic_block_template_url}"
             )
             continue
-        customize_new_utility_from_template(util_dir, util)
+        contract_data = proposed_map.get(util)
+        customize_new_utility_from_template(util_dir, util, contract_data=contract_data)
         logger.info(f"Successfully scaffolded missing utility '{util}'")
         init_git_repo(util_dir)
     return main_project_path

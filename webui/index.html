@@ -128,6 +128,25 @@
         text-align: left;
       }
 
+      .dialog-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .dialog-box {
+        background: #1e1e1e;
+        padding: 20px;
+        border-radius: 10px;
+        min-width: 300px;
+      }
+
       .plan-text {
         font-family: 'Roboto', Arial, sans-serif;
         font-size: 1.1em;
@@ -210,6 +229,9 @@
         const [error, setError] = React.useState('');
         const [stage, setStage] = React.useState('input');
         const [scaffolded, setScaffolded] = React.useState(false);
+        const [showDialog, setShowDialog] = React.useState(false);
+        const [projectNameInput, setProjectNameInput] = React.useState('my_project');
+        const [baseDirInput, setBaseDirInput] = React.useState('.');
         const textareaRef = React.useRef(null);
 
         const handleSubmit = async (e) => {
@@ -262,10 +284,9 @@
         };
 
         const handleScaffold = async () => {
-          const projectName = prompt('Project folder name?', 'my_project');
-          if (!projectName) return;
-          const baseDir = prompt('Base directory on server', '.');
           try {
+            const projectName = projectNameInput;
+            const baseDir = baseDirInput;
             const res = await fetch('/scaffold_project', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -279,13 +300,15 @@
             if (!res.ok) throw new Error('Scaffolding failed');
             await res.json();
             setScaffolded(true);
+            setShowDialog(false);
           } catch (err) {
             alert(err.toString());
           }
         };
 
+        const openDialog = () => setShowDialog(true);
         const handleCreateBlocks = () => {
-          alert("You're almost there!");
+          alert('Keep Going!');
         };
 
         return (
@@ -335,13 +358,46 @@
                     ))}
                   </div>
                 )}
-                <button onClick={handleScaffold} style={{ marginTop: '16px' }}>
+                <button onClick={openDialog} style={{ marginTop: '16px' }}>
                   Scaffold Plan
                 </button>
                 {scaffolded && (
                   <button onClick={handleCreateBlocks} style={{ marginTop: '8px' }}>
-                    Create the blocks
+                    Build
                   </button>
+                )}
+                {showDialog && (
+                  <div className="dialog-overlay">
+                    <div className="dialog-box">
+                      <h3>Scaffold Plan</h3>
+                      <div>
+                        <label>
+                          Project Name:
+                          <input
+                            type="text"
+                            value={projectNameInput}
+                            onChange={(e) => setProjectNameInput(e.target.value)}
+                          />
+                        </label>
+                      </div>
+                      <div style={{ marginTop: '8px' }}>
+                        <label>
+                          Base Directory:
+                          <input
+                            type="text"
+                            value={baseDirInput}
+                            onChange={(e) => setBaseDirInput(e.target.value)}
+                          />
+                        </label>
+                      </div>
+                      <div style={{ marginTop: '12px', textAlign: 'right' }}>
+                        <button onClick={handleScaffold}>Save</button>
+                        <button onClick={() => setShowDialog(false)} style={{ marginLeft: '8px' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
