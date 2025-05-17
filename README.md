@@ -125,3 +125,27 @@ environment under the project directory on first use.
 # Execute the 'hello' entrypoint of utility 'myutil' inside ./my_project
 python -m orchestrator_core.cli execute ./my_project --utility myutil --entrypoint hello --params_json '{"name": "World"}'
 ```
+
+## Web UI (new)
+
+A minimal React-based frontend is included under `webui/`.
+Launch a simple HTTP server and open the page in your browser:
+
+```bash
+cd webui
+python -m http.server 3000
+# Visit http://localhost:3000
+```
+
+The landing page asks *"What do you want to build?"*. After submitting a
+prompt, it calls the `/plan` API and lists the utilities found. Clicking a
+utility fetches its contract from the new `/utility/{name}` endpoint.
+
+## New API Endpoint
+
+The API now exposes `GET /utility/{name}` to retrieve a utility contract by
+name.
+
+```bash
+curl http://127.0.0.1:8000/utility/myutil
+```
