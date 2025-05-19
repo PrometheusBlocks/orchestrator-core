@@ -7,8 +7,10 @@ import logging
 import subprocess
 import shutil
 import json
+import os
 from pathlib import Path
 from typing import Optional
+import requests
 
 from orchestrator_core.catalog.index import load_specs
 
@@ -51,6 +53,70 @@ def init_git_repo(repo_dir: Path) -> bool:
         return False
     except Exception as e:  # pragma: no cover - unexpected errors
         logger.error(f"Unexpected error during git init in {repo_dir}: {e}")
+        return False
+
+
+def create_github_repository(
+    name: str, private: bool = False, org: Optional[str] = None, token: Optional[str] = None
+) -> Optional[str]:
+    """Create a GitHub repository and return its clone URL if successful."""
+
+    if token is None:
+        token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        logger.warning(
+            "GITHUB_TOKEN not provided; skipping creation of GitHub repo '%s'", name
+        )
+        return None
+
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+    payload = {"name": name, "private": private}
+    if org:
+        url = f"https://api.github.com/orgs/{org}/repos"
+    else:
+        url = "https://api.github.com/user/repos"
+
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=15)
+        if resp.status_code not in (201, 200):
+            logger.error(
+                "Failed to create GitHub repo '%s': %s %s",
+                name,
+                resp.status_code,
+                resp.text,
+            )
+            return None
+        data = resp.json()
+        return data.get("clone_url")
+    except Exception as e:  # pragma: no cover - network errors
+        logger.error("Error creating GitHub repo '%s': %s", name, e)
+        return None
+
+
+def push_repo_to_remote(repo_dir: Path, remote_url: str) -> bool:
+    """Push the given git repo to the specified remote URL."""
+
+    try:
+        subprocess.run(["git", "remote", "add", "origin", remote_url], cwd=repo_dir, check=True)
+        subprocess.run(["git", "add", "-A"], cwd=repo_dir, check=True)
+        subprocess.run(["git", "commit", "-m", "Initial scaffold"], cwd=repo_dir, check=True)
+        subprocess.run(["git", "push", "-u", "origin", "HEAD"], cwd=repo_dir, check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        logger.error(
+            "Failed to push repository '%s' to %s: %s", repo_dir, remote_url, e
+        )
+        return False
+    except Exception as e:  # pragma: no cover - unexpected errors
+        logger.error(
+            "Unexpected error pushing repository '%s' to %s: %s",
+            repo_dir,
+            remote_url,
+            e,
+        )
         return False
 
 
@@ -118,11 +184,18 @@ def scaffold_project(
     project_base_dir: Path,
     project_name: str,
     generic_block_template_url: str,
+    *,
+    create_github_repos: bool = False,
+    github_org: Optional[str] = None,
+    github_private: bool = False,
+    github_token: Optional[str] = None,
 ) -> Path:
-    """
-    Scaffold a project directory based on the given plan.
-    Resolved utilities are cloned from their source repos; missing utilities are scaffolded
-    from the generic block template URL.
+    """Scaffold a project directory based on the given plan.
+
+    Resolved utilities are cloned from their source repositories. Missing
+    utilities are created from the generic block template. If
+    ``create_github_repos`` is ``True``, newly scaffolded utilities will also be
+    pushed to freshly created GitHub repositories using ``github_token``.
 
     Returns the path to the main project directory.
     """
@@ -177,4 +250,10 @@ def scaffold_project(
         customize_new_utility_from_template(util_dir, util, contract_data=contract_data)
         logger.info(f"Successfully scaffolded missing utility '{util}'")
         init_git_repo(util_dir)
+        if create_github_repos:
+            remote = create_github_repository(
+                util, private=github_private, org=github_org, token=github_token
+            )
+            if remote:
+                push_repo_to_remote(util_dir, remote)
     return main_project_path
