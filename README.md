@@ -102,18 +102,15 @@ Response:
 Scaffold a local project directory based on a planning result (`plan.json`):
 
 ```bash
-# Scaffold project 'my_project' in current directory using existing plan.json
-python -m orchestrator_core.cli scaffold --plan plan.json --outdir . my_project
+# Scaffold project 'my_project' in the current directory using plan.json
+python -m orchestrator_core.cli scaffold my_project .
 ```
 
 Behavior:
-  * Resolved utilities are cloned from their discovered GitHub repositories.
-  * Missing utilities are scaffolded from the generic block template (default `https://github.com/PrometheusBlocks/block-template.git`), with placeholders replaced and a placeholder `utility_contract.json` generated.
+  * For each utility contract listed in `plan.json`, a folder is created under the project directory.
+  * The `block-template` repository is cloned into each folder and its `utility_contract.json` is replaced with the contract from `plan.json`.
 
-Options:
-  * `--plan`: Path to the input plan JSON file (default: `plan.json`).
-  * `--outdir`: Base directory to create the project (default: current directory).
-  * `--template-url`: Git URL of the generic block template.
+The command assumes `plan.json` is present in the working directory and uses `https://github.com/PrometheusBlocks/block-template` as the template source.
 
 ## Execute (new)
 

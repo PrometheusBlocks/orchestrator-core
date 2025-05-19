@@ -55,36 +55,12 @@ def main(argv=None) -> None:
     # scaffold command to scaffold project based on plan.json
     scaffold_p = sub.add_parser(
         "scaffold",
-        help="Scaffold project: clone resolved utilities and scaffold missing ones from plan.json",
+        help="Scaffold project directories for utilities defined in plan.json",
     )
+    scaffold_p.add_argument("project_name", help="Name of the project directory to create")
     scaffold_p.add_argument(
-        "--plan", dest="plan", default="plan.json", help="Path to input plan.json file"
-    )
-    scaffold_p.add_argument(
-        "--outdir",
-        dest="outdir",
-        default=".",
-        help="Base directory to create the scaffolded project",
-    )
-    scaffold_p.add_argument(
-        "--template-url",
-        dest="template_url",
-        default="https://github.com/PrometheusBlocks/block-template.git",
-        help="Generic block template repository URL",
-    )
-    scaffold_p.add_argument(
-        "--create-github-repos",
-        action="store_true",
-        help="Create GitHub repositories for new utilities",
-    )
-    scaffold_p.add_argument(
-        "--github-org",
-        default=None,
-        help="GitHub organization to create repos in (default: user)",
-    )
-    scaffold_p.add_argument(
-        "project_name",
-        help="Name of the project directory to create",
+        "directory",
+        help="Base directory where the project should be created",
     )
 
     execute_p = sub.add_parser(
@@ -121,83 +97,31 @@ def main(argv=None) -> None:
         except Exception as e:
             print(f"Warning: failed to write plan.json: {e}", file=sys.stderr)
     elif args.cmd == "scaffold":
-        # Scaffold project structure from a plan.json or execution plan list
-        # Load raw plan file
+        plan_file = Path("plan.json")
+        if not plan_file.exists():
+            sys.exit("plan.json not found in current directory")
         try:
-            with open(args.plan) as f:
-                raw_plan = json.load(f)
+            raw_plan = json.loads(plan_file.read_text())
         except Exception as e:
-            sys.exit(f"Failed to load plan file '{args.plan}': {e}")
-        # If plan includes full proposed utilities specs, capture them for later
-        proposed_contracts = {}
+            sys.exit(f"Failed to load plan.json: {e}")
+        proposed = []
         if isinstance(raw_plan, dict) and "proposed_utilities" in raw_plan:
-            for item in raw_plan.get("proposed_utilities", []):
-                if isinstance(item, dict) and item.get("name"):
-                    proposed_contracts[item["name"]] = item
-        # Transform plan formats into scaffolding plan
-        specs = load_specs()
-        # 1) Execution plan list -> extract actions
-        if isinstance(raw_plan, list):
-            actions = [
-                step.get("action")
-                for step in raw_plan
-                if isinstance(step, dict) and "action" in step
-            ]
-            resolved = [act for act in actions if act in specs]
-            missing = [act for act in actions if act not in specs]
-            plan = {"resolved": resolved, "missing": missing}
-        # 2) Direct scaffolding plan dict
-        elif isinstance(raw_plan, dict) and (
-            "resolved" in raw_plan or "missing" in raw_plan
-        ):
-            plan = {
-                "resolved": raw_plan.get("resolved", []),
-                "missing": raw_plan.get("missing", []),
-            }
-        # 3) Legacy LLM layout with proposed_utilities
-        elif isinstance(raw_plan, dict) and "proposed_utilities" in raw_plan:
-            utilities = []
-            for item in raw_plan.get("proposed_utilities", []):
-                if isinstance(item, dict) and item.get("name"):
-                    utilities.append(item["name"])
-            resolved = [u for u in utilities if u in specs]
-            missing = [u for u in utilities if u not in specs]
-            plan = {"resolved": resolved, "missing": missing}
-        else:
-            # Error for unsupported plan format
-            sys.exit(
-                "Invalid plan format: must be:\n"
-                "  - a list of execution-step dicts (with 'action'),\n"
-                "  - a scaffolding plan dict (with 'resolved'/'missing'),\n"
-                "  - or a dict with 'proposed_utilities' array."
-            )
-        # Run scaffolder
+            proposed = [u for u in raw_plan["proposed_utilities"] if isinstance(u, dict)]
+        if not proposed:
+            sys.exit("plan.json must contain 'proposed_utilities' with utility contracts")
+        plan = {
+            "resolved": [],
+            "missing": [u.get("name") for u in proposed if u.get("name")],
+            "proposed_utilities": proposed,
+        }
         from orchestrator_core.executor.scaffolder import scaffold_project
 
         project_path = scaffold_project(
             plan,
-            Path(args.outdir),
+            Path(args.directory),
             args.project_name,
-            args.template_url,
-            create_github_repos=args.create_github_repos,
-            github_org=args.github_org,
+            "https://github.com/PrometheusBlocks/block-template.git",
         )
-        # Overwrite placeholder contracts with full specs from proposed_utilities
-        if proposed_contracts:
-            for name, contract in proposed_contracts.items():
-                util_dir = project_path / name
-                contract_path = util_dir / "utility_contract.json"
-                try:
-                    with open(contract_path, "w") as f:
-                        json.dump(contract, f, indent=2)
-                    print(
-                        f"Wrote proposed utility_contract.json for '{name}' from plan.json."
-                    )
-                except Exception as e:
-                    print(
-                        f"Warning: failed to write contract for '{name}': {e}",
-                        file=sys.stderr,
-                    )
         print(f"Scaffolded project created at: {project_path}")
     elif args.cmd == "execute":
         from orchestrator_core.executor.runner import execute_utility
