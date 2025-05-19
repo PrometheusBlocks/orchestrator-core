@@ -232,6 +232,7 @@
         const [showDialog, setShowDialog] = React.useState(false);
         const [projectNameInput, setProjectNameInput] = React.useState('my_project');
         const [baseDirInput, setBaseDirInput] = React.useState('.');
+        const [createRepos, setCreateRepos] = React.useState(true);
         const textareaRef = React.useRef(null);
 
         const handleSubmit = async (e) => {
@@ -295,6 +296,7 @@
                 project_name: projectName,
                 output_base_dir: baseDir,
                 template_url: 'https://github.com/PrometheusBlocks/block-template.git',
+                create_github_repos: createRepos,
               }),
             });
             if (!res.ok) throw new Error('Scaffolding failed');
@@ -388,6 +390,16 @@
                             value={baseDirInput}
                             onChange={(e) => setBaseDirInput(e.target.value)}
                           />
+                        </label>
+                      </div>
+                      <div style={{ marginTop: '8px' }}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={createRepos}
+                            onChange={(e) => setCreateRepos(e.target.checked)}
+                          />
+                          Create GitHub Repos
                         </label>
                       </div>
                       <div style={{ marginTop: '12px', textAlign: 'right' }}>

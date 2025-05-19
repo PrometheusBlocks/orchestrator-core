@@ -114,7 +114,15 @@ def test_scaffold_project_calls(monkeypatch, tmp_path):
 
     monkeypatch.setattr(scaffolder, "init_git_repo", fake_init)
     # Run scaffolding
-    project_path = scaffolder.scaffold_project(plan, base, project_name, template_url)
+    monkeypatch.setattr(scaffolder, "create_github_repository", lambda *a, **k: "https://github.com/example/repo.git")
+    monkeypatch.setattr(scaffolder, "push_repo_to_remote", lambda repo, remote: calls.append(("push", str(repo), remote)))
+    project_path = scaffolder.scaffold_project(
+        plan,
+        base,
+        project_name,
+        template_url,
+        create_github_repos=True,
+    )
     # Verify returned path
     assert project_path == base / project_name
     # Expected calls: clone for 'a', clone for 'b', customize for 'b'
@@ -133,3 +141,8 @@ def test_scaffold_project_calls(monkeypatch, tmp_path):
     ) in calls
     assert ("init", str(base / project_name / "a")) in calls
     assert ("init", str(base / project_name / "b")) in calls
+    assert (
+        "push",
+        str(base / project_name / "b"),
+        "https://github.com/example/repo.git",
+    ) in calls

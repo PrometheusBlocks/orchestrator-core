@@ -73,6 +73,16 @@ def main(argv=None) -> None:
         help="Generic block template repository URL",
     )
     scaffold_p.add_argument(
+        "--create-github-repos",
+        action="store_true",
+        help="Create GitHub repositories for new utilities",
+    )
+    scaffold_p.add_argument(
+        "--github-org",
+        default=None,
+        help="GitHub organization to create repos in (default: user)",
+    )
+    scaffold_p.add_argument(
         "project_name",
         help="Name of the project directory to create",
     )
@@ -169,6 +179,8 @@ def main(argv=None) -> None:
             Path(args.outdir),
             args.project_name,
             args.template_url,
+            create_github_repos=args.create_github_repos,
+            github_org=args.github_org,
         )
         # Overwrite placeholder contracts with full specs from proposed_utilities
         if proposed_contracts:

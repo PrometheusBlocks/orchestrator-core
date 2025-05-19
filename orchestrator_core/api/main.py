@@ -66,13 +66,22 @@ def scaffold_project_endpoint(payload: dict):
     template_url = payload.get("template_url")
     if not template_url or not isinstance(template_url, str):
         template_url = "https://github.com/PrometheusBlocks/block-template.git"
+    create_repos = bool(payload.get("create_github_repos"))
+    github_org = payload.get("github_org")
     # Perform scaffolding
     from pathlib import Path
     from orchestrator_core.executor.scaffolder import scaffold_project
 
     try:
         base_path = Path(output_dir)
-        project_path = scaffold_project(plan, base_path, project_name, template_url)
+        project_path = scaffold_project(
+            plan,
+            base_path,
+            project_name,
+            template_url,
+            create_github_repos=create_repos,
+            github_org=github_org,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error scaffolding project: {e}")
     return {"project_path": str(project_path)}
