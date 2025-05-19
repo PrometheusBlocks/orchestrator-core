@@ -260,6 +260,14 @@
               utils = data.resolved.map((r) =>
                 typeof r === 'string' ? r : r.name
               );
+            } else if (data && Array.isArray(data.used_capabilities)) {
+              utils = data.used_capabilities.map((r) =>
+                typeof r === 'string' ? r : r.name
+              );
+            } else if (data && Array.isArray(data.proposed_utilities)) {
+              utils = data.proposed_utilities
+                .map((u) => u.name)
+                .filter(Boolean);
             }
             setUtilities(utils);
             if (data && Array.isArray(data.proposed_utilities)) {
