@@ -1,10 +1,68 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pathlib import Path
+from typing import Any, Dict
+
+from orchestrator_core.catalog.index import load_specs
 
 WEBUI_DIR = Path(__file__).resolve().parents[2] / "webui"
 
 app = FastAPI()
+
+
+def normalize_plan_for_scaffolding(raw_plan: Any) -> Dict[str, list]:
+    """Convert various plan formats into a scaffolding-friendly dict.
+
+    The scaffolder expects a ``{"resolved": [...], "missing": [...]}`` layout. This
+    helper accepts execution plans returned by the planner or provided by the
+    user and extracts the needed lists.
+    """
+
+    specs = load_specs()
+
+    if isinstance(raw_plan, list):
+        actions = [
+            step.get("action")
+            for step in raw_plan
+            if isinstance(step, dict) and "action" in step
+        ]
+        resolved = [a for a in actions if a in specs]
+        missing = [a for a in actions if a not in specs]
+        return {"resolved": resolved, "missing": missing}
+
+    if isinstance(raw_plan, dict):
+        if "resolved" in raw_plan or "missing" in raw_plan:
+            return {
+                "resolved": list(raw_plan.get("resolved", [])),
+                "missing": list(raw_plan.get("missing", [])),
+            }
+
+        if "proposed_utilities" in raw_plan:
+            utilities = [
+                item.get("name")
+                for item in raw_plan.get("proposed_utilities", [])
+                if isinstance(item, dict) and item.get("name")
+            ]
+            resolved = [u for u in utilities if u in specs]
+            missing = [u for u in utilities if u not in specs]
+            return {"resolved": resolved, "missing": missing}
+
+        if "used_capabilities" in raw_plan or "missing_capabilities" in raw_plan:
+            used = [
+                cap.get("name") if isinstance(cap, dict) else cap
+                for cap in raw_plan.get("used_capabilities", [])
+                if isinstance(cap, (str, dict))
+            ]
+            miss = [
+                cap.get("name") if isinstance(cap, dict) else cap
+                for cap in raw_plan.get("missing_capabilities", [])
+                if isinstance(cap, (str, dict))
+            ]
+            resolved = [u for u in used if u in specs]
+            missing = [u for u in miss if u not in specs or u not in resolved]
+            return {"resolved": resolved, "missing": missing}
+
+    raise HTTPException(status_code=400, detail="Invalid plan format")
 
 
 @app.get("/")
@@ -37,10 +95,7 @@ def scaffold_project_endpoint(payload: dict):
     plan = None
     if payload.get("plan") is not None:
         plan = payload.get("plan")
-        if not isinstance(plan, dict):
-            raise HTTPException(
-                status_code=400, detail="Invalid 'plan' provided; must be a dict."
-            )
+        # plan may be any format; normalize below
     elif payload.get("prompt") is not None:
         prompt = payload.get("prompt")
         if not isinstance(prompt, str) or not prompt:
@@ -74,8 +129,11 @@ def scaffold_project_endpoint(payload: dict):
 
     try:
         base_path = Path(output_dir)
+        if plan is None:
+            raise ValueError("Plan not provided")
+        normalized = normalize_plan_for_scaffolding(plan)
         project_path = scaffold_project(
-            plan,
+            normalized,
             base_path,
             project_name,
             template_url,
