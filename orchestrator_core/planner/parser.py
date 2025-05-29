@@ -94,11 +94,8 @@ def prompt_to_capabilities(prompt: str, use_llm: bool = False) -> list[str]:
     return caps
 
 
-def prompt_to_plan(prompt: str) -> list[dict]:
-    """
-    Use OpenAI GPT-4.1 to generate a structured execution plan for the given prompt.
-    Falls back to keyword-based planning if the LLM call fails or returns invalid JSON.
-    """
+def _existing_prompt_to_plan(prompt: str) -> list[dict]:
+    """Original planning logic for regular tasks."""
     # Load available utilities
     try:
         from orchestrator_core.catalog.index import load_specs
@@ -235,3 +232,46 @@ def prompt_to_plan(prompt: str) -> list[dict]:
                 }
             )
         return steps
+
+
+def plan_self_modification(prompt: str) -> list[dict]:
+    """Create a plan for modifying the orchestrator itself."""
+    try:
+        from orchestrator_core.skills.core import PlanningSkill
+
+        planner = PlanningSkill()
+        return planner.plan_self_improvement(prompt)
+    except Exception as e:
+        print(f"Self-modification planning failed: {e}")
+        return [
+            {
+                "step_id": 1,
+                "action": "create_utility",
+                "inputs": {"name": "self_improvement_utility", "description": prompt},
+                "description": f"Create self-improvement utility for: {prompt}",
+            }
+        ]
+
+
+def prompt_to_plan(prompt: str) -> list[dict]:
+    """Enhanced planner that recognizes self-modification requests."""
+    self_improvement_keywords = [
+        "improve yourself",
+        "add capability",
+        "modify orchestrator",
+        "enhance your",
+        "learn to",
+        "become better at",
+        "add skill",
+        "improve",
+        "enhance",
+        "modify",
+        "add",
+        "create skill",
+    ]
+
+    is_self_improvement = any(keyword in prompt.lower() for keyword in self_improvement_keywords)
+
+    if is_self_improvement:
+        return plan_self_modification(prompt)
+    return _existing_prompt_to_plan(prompt)

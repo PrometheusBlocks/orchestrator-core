@@ -4,6 +4,11 @@ import sys
 from pathlib import Path
 
 from orchestrator_core.catalog.index import load_specs
+from orchestrator_core.skills.core import (
+    PlanningSkill,
+    CodeGenerationSkill,
+    SelfInspectionSkill,
+)
 
 
 def _load_params(source: str) -> dict:
@@ -40,6 +45,126 @@ def _show(name: str) -> None:
     print(json.dumps(specs[name], indent=2))
 
 
+def _self_improve(goal: str) -> None:
+    """Improve the orchestrator's capabilities to achieve a goal."""
+    print(f"\U0001F9E0 Planning self-improvement for: {goal}")
+
+    try:
+        planner = PlanningSkill()
+        plan = planner.plan_self_improvement(goal)
+
+        print(f"\U0001F4CB Generated plan with {len(plan)} steps:")
+        for step in plan:
+            print(f"  {step['step_id']}: {step['description']}")
+
+        print("\n\u26A0\uFE0F SAFETY CHECK \u26A0\uFE0F")
+        print("This will modify the orchestrator codebase.")
+        print("Review the plan carefully:")
+        for step in plan:
+            action = step["action"]
+            inputs = step.get("inputs", {})
+            if action == "modify_existing":
+                file_path = inputs.get("file_path", "unknown")
+                print(f"  - Will modify: {file_path}")
+            elif action == "generate_code":
+                output_path = inputs.get("output_path", "unknown")
+                print(f"  - Will create: {output_path}")
+            elif action == "create_utility":
+                name = inputs.get("name", "unknown")
+                print(f"  - Will create utility: {name}")
+
+        confirm = input("\nProceed with this plan? (y/N): ").strip().lower()
+        if confirm != "y":
+            print("Self-improvement cancelled.")
+            return
+
+        for step in plan:
+            action = step["action"]
+            description = step["description"]
+            inputs = step.get("inputs", {})
+
+            print(f"\n\U0001F527 Executing: {description}")
+
+            if action == "generate_code":
+                _execute_generate_code(inputs)
+            elif action == "modify_existing":
+                _execute_modify_existing(inputs)
+            elif action == "create_utility":
+                _execute_create_utility(inputs)
+            elif action == "test_capability":
+                _execute_test_capability(inputs)
+            else:
+                print(f"\u26A0\uFE0F  Unknown action: {action}")
+
+        print("\n\U0001F389 Self-improvement complete!")
+
+    except Exception as e:
+        print(f"\u274C Self-improvement failed: {e}")
+
+
+def _execute_generate_code(inputs: dict) -> None:
+    """Execute code generation step."""
+    try:
+        code_gen = CodeGenerationSkill()
+
+        description = inputs.get("description", "Generate code")
+        function_name = inputs.get("function_name", "new_function")
+        parameters = inputs.get("parameters", {})
+        output_path = inputs.get("output_path", "generated_code.py")
+
+        code = code_gen.generate_function(description, function_name, parameters)
+        Path(output_path).write_text(code)
+        print(f"\u2705 Generated code: {output_path}")
+
+    except Exception as e:
+        print(f"\u274C Code generation failed: {e}")
+
+
+def _execute_modify_existing(inputs: dict) -> None:
+    """Execute existing code modification step."""
+    file_path = inputs.get("file_path", "")
+    modification = inputs.get("modification", "")
+
+    print("\u26A0\uFE0F  Manual modification needed:")
+    print(f"   File: {file_path}")
+    print(f"   Change: {modification}")
+    print("   (Automatic modification not implemented yet)")
+
+
+def _execute_create_utility(inputs: dict) -> None:
+    """Execute utility creation step."""
+    try:
+        name = inputs.get("name", "new_utility")
+        description = inputs.get("description", "Generated utility")
+
+        code_gen = CodeGenerationSkill()
+        contract = code_gen.generate_utility_contract(name, description)
+
+        from orchestrator_core.executor.scaffolder import scaffold_project
+
+        plan = {"resolved": [], "missing": [name], "proposed_utilities": [contract]}
+
+        output_dir = Path("./generated_utilities")
+        project_path = scaffold_project(
+            plan,
+            output_dir,
+            name,
+            "https://github.com/PrometheusBlocks/block-template.git",
+        )
+
+        print(f"\u2705 Created utility: {project_path}")
+
+    except Exception as e:
+        print(f"\u274C Utility creation failed: {e}")
+
+
+def _execute_test_capability(inputs: dict) -> None:
+    """Execute capability testing step."""
+    capability = inputs.get("capability", "unknown")
+    print(f"\U0001F9EA Testing capability: {capability}")
+    print("   (Automatic testing not implemented yet)")
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser("orchestrator_core")
     sub = parser.add_subparsers(dest="cmd")
@@ -62,6 +187,12 @@ def main(argv=None) -> None:
         "directory",
         help="Base directory where the project should be created",
     )
+
+    improve_p = sub.add_parser(
+        "improve",
+        help="Improve the orchestrator's capabilities through self-modification",
+    )
+    improve_p.add_argument("goal", nargs="+", help="What capability to add or improve")
 
     execute_p = sub.add_parser(
         "execute",
@@ -140,6 +271,9 @@ def main(argv=None) -> None:
                 indent=2,
             )
         )
+    elif args.cmd == "improve":
+        goal = " ".join(args.goal)
+        _self_improve(goal)
     else:
         parser.print_help()
 
