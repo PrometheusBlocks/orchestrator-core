@@ -131,14 +131,61 @@ def _execute_modify_existing(inputs: dict) -> None:
     print("   (Automatic modification not implemented yet)")
 
 
+def _validate_generated_code(code: str, utility_name: str) -> bool:
+    """Validate that generated code is functional and not just placeholders."""
+    if not code or len(code.strip()) < 50:
+        print(f"\u26A0\uFE0F  Generated code for {utility_name} is too short")
+        return False
+
+    placeholder_signs = [
+        "TODO",
+        "FIXME",
+        "placeholder",
+        "pass",
+        "NotImplemented",
+        "raise NotImplementedError",
+        "# Implementation needed",
+    ]
+
+    code_lower = code.lower()
+    placeholder_count = sum(1 for sign in placeholder_signs if sign.lower() in code_lower)
+    if placeholder_count > 2:
+        print(f"\u26A0\uFE0F  Generated code for {utility_name} appears to have too many placeholders")
+        return False
+
+    if "def " not in code:
+        print(f"\u26A0\uFE0F  Generated code for {utility_name} doesn't contain function definitions")
+        return False
+
+    try:
+        compile(code, f"{utility_name}.py", "exec")
+        print(f"\u2705 Generated code for {utility_name} passes syntax validation")
+        return True
+    except SyntaxError as e:
+        print(f"\u274C Generated code for {utility_name} has syntax errors: {e}")
+        return False
+
+
 def _execute_create_utility(inputs: dict) -> None:
-    """Execute utility creation step."""
+    """Execute utility creation with real functional code using o4-mini."""
     try:
         name = inputs.get("name", "new_utility")
         description = inputs.get("description", "Generated utility")
 
+        print(f"\U0001F916 Using o4-mini to generate functional code for {name}...")
+
         code_gen = CodeGenerationSkill()
+
         contract = code_gen.generate_utility_contract(name, description)
+        print(f"\U0001F4CB Generated contract for {name}")
+
+        print(f"\U0001F9E0 o4-mini reasoning through implementation...")
+        implementation_code = code_gen.generate_complete_utility_implementation(name, description, contract)
+
+        if not _validate_generated_code(implementation_code, name):
+            print(f"\u26A0\uFE0F Code quality check failed for {name}. Proceeding anyway...")
+            print("\U0001F4DD Preview of generated code:")
+            print(implementation_code[:500] + "..." if len(implementation_code) > 500 else implementation_code)
 
         from orchestrator_core.executor.scaffolder import scaffold_project
 
@@ -152,10 +199,46 @@ def _execute_create_utility(inputs: dict) -> None:
             "https://github.com/PrometheusBlocks/block-template.git",
         )
 
-        print(f"\u2705 Created utility: {project_path}")
+        print(f"\U0001F4DD Writing o4-mini generated code...")
+
+        implementation_files = [
+            project_path / name / f"{name}.py",
+            project_path / name / "__init__.py",
+            project_path / name / "main.py",
+        ]
+
+        code_written = False
+        for impl_file in implementation_files:
+            if impl_file.parent.exists():
+                try:
+                    impl_file.write_text(implementation_code, encoding="utf-8")
+                    print(f"\u2705 Wrote implementation to: {impl_file}")
+                    code_written = True
+                    break
+                except Exception as e:
+                    print(f"\u26A0\uFE0F  Failed to write to {impl_file}: {e}")
+
+        if not code_written:
+            standalone_file = output_dir / f"{name}_implementation.py"
+            standalone_file.write_text(implementation_code, encoding="utf-8")
+            print(f"\u2705 Created standalone implementation: {standalone_file}")
+
+        contract_file = project_path / name / "utility_contract.json"
+        if contract_file.exists():
+            import json
+            with contract_file.open('w') as f:
+                json.dump(contract, f, indent=2)
+            print(f"\U0001F4C4 Updated contract: {contract_file}")
+
+        print(f"\U0001F389 Created functional utility with o4-mini: {project_path}")
+        print(f"\U0001F9EA Test the implementation:")
+        print(f"   cd {project_path}/{name}")
+        print(f"   python {name}.py")
 
     except Exception as e:
-        print(f"\u274C Utility creation failed: {e}")
+        print(f"\u274C o4-mini utility creation failed: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def _execute_test_capability(inputs: dict) -> None:
